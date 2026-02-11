@@ -33,7 +33,7 @@ export default function Landing() {
     if (!isSignedIn) {
         openSignIn();
     } else {
-        navigate("/create");
+        navigate("/studio");
     }
   };
 

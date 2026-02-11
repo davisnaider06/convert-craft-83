@@ -19,6 +19,7 @@ import DomainSettings from "./pages/DomainSettings";
 import Pricing from "./pages/Pricing";
 import Credits from "./pages/Credits";
 import Profile from "./pages/Profile";
+import Studio from "./pages/Studio";
 
 // Admin
 import Admin from "./pages/Admin";
@@ -66,10 +67,10 @@ const App = () => (
               }
             />
             <Route
-              path="/create"
+              path="/studio"
               element={
                 <RequireAuth>
-                  <Create />
+                  <Studio />
                 </RequireAuth>
               }
             />

@@ -26,9 +26,7 @@ export function SiteRenderer({ data, viewMode = "desktop" }: { data: any, viewMo
     );
   }
 
-  const primaryColor = data.colors?.primary?.startsWith('#') 
-    ? data.colors.primary 
-    : '#3b82f6';
+  const primaryColor = data.colors?.primary || '#3b82f6';
 
   const getIcon = (iconName: string) => {
     const IconComponent = iconMap[iconName?.toLowerCase()] || Star;
