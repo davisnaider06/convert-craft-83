@@ -8,7 +8,7 @@ import { ConfettiCelebration } from "@/components/boder/ConfettiCelebration";
 import { useUser } from "@clerk/clerk-react"; 
 
 import { premiumToast } from "@/components/ui/premium-toast";
-import { SiteRenderer } from "@/components/boder/SiteRenderer"; // <-- IMPORTANTE: O Renderizador
+import { SiteRenderer } from "@/components/boder/SiteRenderer"; 
 import {
   ArrowLeft,
   Eye,
@@ -26,6 +26,7 @@ import {
   RefreshCw,
   Send,
   History,
+  Sparkles, // <-- IMPORT ADICIONADO AQUI
 } from "lucide-react";
 import boderLogo from "@/assets/boder-logo.png";
 
@@ -36,7 +37,7 @@ interface SiteData {
   id: string;
   name: string;
   description: string | null;
-  content: any | null; // MUDANÇA: Agora salva o JSON
+  content: any | null; 
   has_watermark: boolean;
   is_published: boolean;
   subdomain: string | null;
@@ -121,7 +122,6 @@ export default function Preview() {
     setRegenerating(true);
 
     try {
-      // PROMPT INTELIGENTE: Pede para a IA ajustar o JSON atual
       const promptAjuste = `
         Aja como Copywriter. O usuário solicitou as seguintes alterações no site dele: 
         "${adjustments}"
@@ -144,7 +144,6 @@ export default function Preview() {
 
       if (!response.ok) throw new Error(data.error || "Erro na regeneração");
 
-      // Atualiza com o novo JSON gerado
       updateLocalSite({ content: data.code });
       setAdjustments("");
       setShowRegenerateModal(false);
@@ -210,7 +209,6 @@ export default function Preview() {
       <AnimatedBackground />
       <ConfettiCelebration isActive={showConfetti} onComplete={() => setShowConfetti(false)} />
 
-      {/* Header */}
       <motion.header
         className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/90 backdrop-blur-md"
         initial={{ y: -60 }}
@@ -263,7 +261,6 @@ export default function Preview() {
         </div>
       </motion.header>
 
-      {/* Main Content */}
       <main className="pt-20 pb-4 px-4 flex-1 flex flex-col items-center">
         {site.is_published && site.subdomain && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-4 w-full max-w-6xl">
@@ -292,7 +289,6 @@ export default function Preview() {
           </motion.div>
         )}
 
-        {/* SITE RENDERER CONTAINER */}
         <motion.div className="flex-1 w-full flex items-start justify-center" layout>
           <motion.div
             className={`bg-white rounded-xl overflow-hidden shadow-2xl transition-all duration-300 relative ${
@@ -301,18 +297,28 @@ export default function Preview() {
             style={{ height: viewMode === "mobile" ? "calc(100vh - 120px)" : "calc(100vh - 100px)" }}
             layout
           >
-            {/* Se tiver conteúdo JSON, renderiza o SiteRenderer */}
             {site.content ? (
               <div className="w-full h-full overflow-y-auto">
-                <SiteRenderer data={site.content} />
-                
-                {/* Watermark */}
+                <SiteRenderer data={site.content} viewMode={viewMode} />
+                {/* Nova Watermark Sutil (Glass Badge) com a DIV FECHADA corretamente */}
                 {!isPaid && site.has_watermark && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-slate-900/90 backdrop-blur text-center p-3 z-50 border-t border-primary/20">
-                    <a href="https://boder.app" target="_blank" className="text-primary text-sm font-medium hover:underline flex items-center justify-center gap-2">
-                      <span className="text-white opacity-70">Criado com</span> Boder AI
-                    </a>
-                  </div>
+                  <motion.a
+                    href="https://boder.app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ delay: 0.5, type: "spring" }}
+                    className="absolute bottom-4 right-4 z-50 flex items-center gap-1.5 rounded-full bg-white/70 pl-2 pr-3 py-1.5 text-[11px] font-medium text-slate-600 backdrop-blur-md border border-white/50 shadow-sm transition-all hover:bg-white hover:text-primary hover:shadow-md hover:scale-105 group"
+                    style={{boxShadow: "0 2px 10px rgba(0,0,0,0.05)"}}
+                  >
+                    {boderLogo ? (
+                      <img src={boderLogo} alt="Boder Logo" className="h-3.5 w-auto opacity-70 group-hover:opacity-100 transition-opacity" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5 text-primary/70 group-hover:text-primary transition-colors" />
+                    )}
+                    <span>Criado com <strong className="font-bold">Boder AI</strong></span>
+                  </motion.a>
                 )}
               </div>
             ) : (
@@ -327,7 +333,6 @@ export default function Preview() {
         </motion.div>
       </main>
 
-      {/* Floating Action Buttons */}
       {site.content && (
         <motion.div
           className="fixed bottom-6 right-6 flex gap-3 z-40"
@@ -346,7 +351,6 @@ export default function Preview() {
         </motion.div>
       )}
 
-      {/* Modal: Ajustar com IA */}
       <AnimatePresence>
         {showRegenerateModal && (
           <motion.div
@@ -391,7 +395,6 @@ export default function Preview() {
         )}
       </AnimatePresence>
 
-      {/* Modal: Publish */}
       <AnimatePresence>
         {showPublishModal && (
           <motion.div

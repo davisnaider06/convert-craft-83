@@ -4,7 +4,6 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-// Mapeador de ícones dinâmicos que a IA pode pedir
 const iconMap: Record<string, any> = {
   zap: Zap,
   shield: Shield,
@@ -17,7 +16,8 @@ const iconMap: Record<string, any> = {
   message: MessageCircle
 };
 
-export function SiteRenderer({ data }: { data: any }) {
+// Adicionamos a prop viewMode aqui
+export function SiteRenderer({ data, viewMode = "desktop" }: { data: any, viewMode?: "desktop" | "mobile" }) {
   if (!data || Object.keys(data).length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -26,7 +26,6 @@ export function SiteRenderer({ data }: { data: any }) {
     );
   }
 
-  // Tenta extrair a cor primária ou usa um azul moderno como fallback
   const primaryColor = data.colors?.primary?.startsWith('#') 
     ? data.colors.primary 
     : '#3b82f6';
@@ -36,10 +35,13 @@ export function SiteRenderer({ data }: { data: any }) {
     return <IconComponent className="h-6 w-6" />;
   };
 
+  // Váriavel mágica que desliga o Desktop se o botão Mobile for clicado
+  const isMobile = viewMode === "mobile";
+
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans w-full overflow-x-hidden">
       
-      {/* 1. HEADER SIMPLES */}
+      {/* 1. HEADER */}
       <header className="px-6 py-4 flex items-center justify-between border-b border-slate-100">
         <div className="font-bold text-xl flex items-center gap-2" style={{ color: primaryColor }}>
           <Zap className="h-6 w-6" />
@@ -56,20 +58,16 @@ export function SiteRenderer({ data }: { data: any }) {
       {/* 2. HERO SECTION */}
       <section className="relative pt-24 pb-32 px-4 overflow-hidden">
         <div className="container mx-auto text-center relative z-10 max-w-4xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-8 leading-[1.1]">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+            <h1 className={`font-extrabold tracking-tight text-slate-900 mb-8 leading-[1.1] ${isMobile ? "text-5xl" : "text-5xl md:text-7xl"}`}>
               {data.hero?.headline || "Título Principal"}
             </h1>
-            <p className="text-xl md:text-2xl text-slate-600 mb-10 max-w-2xl mx-auto leading-relaxed">
+            <p className={`text-slate-600 mb-10 max-w-2xl mx-auto leading-relaxed ${isMobile ? "text-lg" : "text-xl md:text-2xl"}`}>
               {data.hero?.subheadline || "Subtítulo explicativo focando na dor do cliente."}
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <div className={`flex justify-center items-center gap-4 ${isMobile ? "flex-col" : "flex-col sm:flex-row"}`}>
               <button 
-                className="h-14 px-8 text-lg rounded-full text-white font-bold flex items-center gap-2 transition-all hover:shadow-xl hover:-translate-y-1"
+                className="h-14 px-8 text-lg rounded-full text-white font-bold flex items-center justify-center gap-2 transition-all hover:shadow-xl hover:-translate-y-1 w-full sm:w-auto"
                 style={{ backgroundColor: primaryColor, boxShadow: `0 10px 25px -5px ${primaryColor}40` }}
               >
                 {data.hero?.cta || "Quero Começar Agora"} <ArrowRight className="h-5 w-5" />
@@ -78,27 +76,22 @@ export function SiteRenderer({ data }: { data: any }) {
           </motion.div>
         </div>
 
-        {/* Imagem do Hero se a IA tiver gerado uma keyword */}
         {data.hero?.image_keyword && (
           <motion.div 
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.2 }}
             className="container mx-auto mt-16 px-4 max-w-5xl"
           >
             <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-200 bg-slate-50 relative aspect-video md:aspect-[21/9]">
               <img 
                 src={`https://source.unsplash.com/1600x900/?${encodeURIComponent(data.hero.image_keyword)}`} 
-                alt="Demonstração"
-                className="w-full h-full object-cover"
-                loading="lazy"
+                alt="Demonstração" className="w-full h-full object-cover" loading="lazy"
               />
             </div>
           </motion.div>
         )}
       </section>
 
-      {/* 3. SOCIAL PROOF (LOGOS) */}
+      {/* 3. SOCIAL PROOF */}
       {data.social_proof?.logos && data.social_proof.logos.length > 0 && (
         <section className="py-10 border-y border-slate-100 bg-slate-50">
           <div className="container mx-auto px-4 text-center">
@@ -121,9 +114,12 @@ export function SiteRenderer({ data }: { data: any }) {
         <section className="py-24 bg-white">
           <div className="container mx-auto px-4 max-w-6xl">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-slate-900">Por que escolher nossa solução?</h2>
+              <h2 className={`font-bold text-slate-900 ${isMobile ? "text-3xl" : "text-3xl md:text-4xl"}`}>
+                Por que escolher nossa solução?
+              </h2>
             </div>
-            <div className="grid md:grid-cols-3 gap-8">
+            {/* Controle da grade responsiva forçado */}
+            <div className={`grid gap-8 ${isMobile ? "grid-cols-1" : "md:grid-cols-3"}`}>
               {data.features.map((feature: any, i: number) => (
                 <div key={i} className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:shadow-lg transition-shadow">
                   <div 
@@ -133,9 +129,7 @@ export function SiteRenderer({ data }: { data: any }) {
                     {getIcon(feature.icon)}
                   </div>
                   <h3 className="text-xl font-bold text-slate-900 mb-3">{feature.title}</h3>
-                  <p className="text-slate-600 leading-relaxed">
-                    {feature.description}
-                  </p>
+                  <p className="text-slate-600 leading-relaxed">{feature.description}</p>
                 </div>
               ))}
             </div>
@@ -147,10 +141,12 @@ export function SiteRenderer({ data }: { data: any }) {
       {data.testimonials && data.testimonials.length > 0 && (
         <section className="py-24 bg-slate-900 text-white">
           <div className="container mx-auto px-4 max-w-6xl">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">O que nossos clientes dizem</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-auto-fit gap-6 justify-center">
+            <h2 className={`font-bold text-center mb-16 ${isMobile ? "text-3xl" : "text-3xl md:text-4xl"}`}>
+              O que nossos clientes dizem
+            </h2>
+            <div className={`grid gap-6 justify-center ${isMobile ? "grid-cols-1" : "md:grid-cols-2"}`}>
               {data.testimonials.map((t: any, i: number) => (
-                <div key={i} className="p-8 rounded-2xl bg-slate-800 border border-slate-700 max-w-lg w-full mx-auto">
+                <div key={i} className="p-8 rounded-2xl bg-slate-800 border border-slate-700 w-full mx-auto">
                   <div className="flex gap-1 mb-6 text-yellow-400">
                     {[1,2,3,4,5].map(star => <Star key={star} size={18} fill="currentColor" />)}
                   </div>
@@ -176,15 +172,19 @@ export function SiteRenderer({ data }: { data: any }) {
         <section className="py-24 bg-slate-50">
           <div className="container mx-auto px-4 max-w-5xl">
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-slate-900">Planos Transparentes</h2>
+              <h2 className={`font-bold text-slate-900 ${isMobile ? "text-3xl" : "text-3xl md:text-4xl"}`}>
+                Planos Transparentes
+              </h2>
             </div>
-            <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto items-center">
+            <div className={`grid gap-8 max-w-4xl mx-auto items-center ${isMobile ? "grid-cols-1" : "md:grid-cols-2"}`}>
               {data.pricing.map((plan: any, i: number) => (
                 <div 
                   key={i} 
                   className={`relative p-8 md:p-10 rounded-3xl bg-white flex flex-col h-full ${
-                    plan.recommended 
+                    plan.recommended && !isMobile
                       ? 'border-2 shadow-2xl scale-105 z-10' 
+                      : plan.recommended && isMobile
+                      ? 'border-2 shadow-xl'
                       : 'border border-slate-200 shadow-md'
                   }`}
                   style={{ borderColor: plan.recommended ? primaryColor : undefined }}
@@ -247,18 +247,13 @@ export function SiteRenderer({ data }: { data: any }) {
 
       {/* 8. CTA FINAL */}
       {data.cta_section && (
-        <section 
-          className="py-24 text-center px-4"
-          style={{ backgroundColor: primaryColor }}
-        >
+        <section className="py-24 text-center px-4" style={{ backgroundColor: primaryColor }}>
           <div className="container mx-auto max-w-3xl">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            <h2 className={`font-bold text-white mb-6 ${isMobile ? "text-3xl" : "text-4xl md:text-5xl"}`}>
               {data.cta_section.title}
             </h2>
-            <p className="text-xl text-white/90 mb-10">
-              {data.cta_section.subtitle}
-            </p>
-            <button className="bg-white text-slate-900 h-16 px-10 text-xl rounded-full font-bold shadow-2xl hover:scale-105 transition-transform">
+            <p className="text-xl text-white/90 mb-10">{data.cta_section.subtitle}</p>
+            <button className="bg-white text-slate-900 h-16 px-10 text-xl rounded-full font-bold shadow-2xl hover:scale-105 transition-transform w-full sm:w-auto">
               {data.cta_section.button_text || "Começar Agora"}
             </button>
           </div>
