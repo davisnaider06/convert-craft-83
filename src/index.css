@@ -1,0 +1,391 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 220 20% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+
+    --primary: 166 86% 56%;
+    --primary-foreground: 220 25% 6%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 20% 10%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 10% 45%;
+
+    --accent: 166 86% 56%;
+    --accent-foreground: 220 25% 6%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 14% 90%;
+    --input: 220 14% 90%;
+    --ring: 166 86% 56%;
+
+    --radius: 0.75rem;
+
+    --font-body: 'Inter', system-ui, sans-serif;
+  }
+
+  .dark {
+    --background: 220 30% 5%;
+    --foreground: 0 0% 98%;
+
+    --card: 220 25% 8%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 220 25% 8%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 166 86% 56%;
+    --primary-foreground: 220 25% 6%;
+
+    --secondary: 220 20% 12%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 220 20% 12%;
+    --muted-foreground: 220 10% 60%;
+
+    --accent: 166 86% 56%;
+    --accent-foreground: 220 25% 6%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 20% 15%;
+    --input: 220 20% 15%;
+    --ring: 166 86% 56%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-body);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-body);
+    font-weight: 600;
+  }
+
+  /* Smooth theme transition for all elements */
+  *, *::before, *::after {
+    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  /* Exclude animations from transition to avoid conflicts */
+  [class*="animate-"], .transition-transform {
+    transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+  }
+}
+
+@layer components {
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(166, 86%, 56%) 0%, hsl(166, 70%, 45%) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Shiny Text Effect */
+  .shiny-text {
+    color: #b5b5b5a4;
+    background: linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0) 40%,
+      rgba(255, 255, 255, 0.8) 50%,
+      rgba(255, 255, 255, 0) 60%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    display: inline-block;
+    animation: shine 5s linear infinite;
+  }
+
+  @keyframes shine {
+    0% {
+      background-position: 100%;
+    }
+    100% {
+      background-position: -100%;
+    }
+  }
+
+  .shiny-text-disabled {
+    animation: none;
+  }
+
+  /* Shimmer Button Effect */
+  .shimmer-button {
+    position: relative;
+  }
+
+  .shimmer-button::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(90deg, 
+      transparent 0%, 
+      hsl(var(--primary) / 0.2) 25%, 
+      hsl(var(--foreground) / 0.9) 50%, 
+      hsl(var(--primary) / 0.2) 75%, 
+      transparent 100%);
+    background-size: 200% 100%;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 5;
+    transition: opacity 0.3s;
+  }
+
+  .group:hover .shimmer-button::before {
+    opacity: 1;
+    animation: shimmerSync 2s infinite ease-in-out;
+  }
+
+  @keyframes shimmerSync {
+    0% { background-position: 150% 0; }
+    100% { background-position: -150% 0; }
+  }
+
+  /* Shiny CTA Button Effect - Base Styles */
+  .shiny-cta,
+  .shiny-cta-outline,
+  .shiny-cta-destructive {
+    --gradient-angle: 0deg;
+    --gradient-angle-offset: 0deg;
+    --gradient-percent: 20%;
+    --shadow-size: 2px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 9999px;
+    font-weight: 500;
+    border: 2px solid transparent;
+    outline: none;
+    transition: transform 0.2s, box-shadow 0.3s;
+    cursor: pointer;
+    isolation: isolate;
+    outline-offset: 4px;
+    z-index: 0;
+    animation: shiny-border-spin 2.5s linear infinite;
+  }
+
+  /* Default variant */
+  .shiny-cta {
+    --gradient-shine: hsl(var(--primary));
+    color: hsl(var(--foreground));
+    background: linear-gradient(hsl(var(--card)), hsl(var(--card))) padding-box, 
+                conic-gradient(from calc(var(--gradient-angle) - var(--gradient-angle-offset)), 
+                transparent 0%, hsl(var(--primary) / 0.3) 5%, var(--gradient-shine) 15%, hsl(var(--primary) / 0.3) 30%, 
+                transparent 40%, transparent 100%) border-box;
+    box-shadow: inset 0 0 0 1px hsl(var(--border));
+  }
+
+  .shiny-cta:hover {
+    box-shadow: inset 0 0 0 1px hsl(var(--border)), 0 0 20px hsl(var(--primary) / 0.3);
+  }
+
+  /* Outline variant */
+  .shiny-cta-outline {
+    --gradient-shine: hsl(var(--muted-foreground));
+    color: hsl(var(--foreground));
+    background: transparent padding-box, 
+                conic-gradient(from calc(var(--gradient-angle) - var(--gradient-angle-offset)), 
+                transparent 0%, hsl(var(--muted-foreground) / 0.2) 5%, var(--gradient-shine) 15%, hsl(var(--muted-foreground) / 0.2) 30%, 
+                transparent 40%, transparent 100%) border-box;
+    box-shadow: inset 0 0 0 1px hsl(var(--border) / 0.5);
+  }
+
+  .shiny-cta-outline:hover {
+    box-shadow: inset 0 0 0 1px hsl(var(--border)), 0 0 15px hsl(var(--muted-foreground) / 0.2);
+    background: hsl(var(--muted) / 0.3) padding-box, 
+                conic-gradient(from calc(var(--gradient-angle) - var(--gradient-angle-offset)), 
+                transparent 0%, hsl(var(--muted-foreground) / 0.3) 5%, var(--gradient-shine) 15%, hsl(var(--muted-foreground) / 0.3) 30%, 
+                transparent 40%, transparent 100%) border-box;
+  }
+
+  /* Destructive variant */
+  .shiny-cta-destructive {
+    --gradient-shine: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+    background: linear-gradient(hsl(var(--destructive)), hsl(var(--destructive))) padding-box, 
+                conic-gradient(from calc(var(--gradient-angle) - var(--gradient-angle-offset)), 
+                transparent 0%, hsl(var(--destructive) / 0.5) 5%, hsl(0, 100%, 70%) 15%, hsl(var(--destructive) / 0.5) 30%, 
+                transparent 40%, transparent 100%) border-box;
+    box-shadow: inset 0 0 0 1px hsl(var(--destructive) / 0.5);
+  }
+
+  .shiny-cta-destructive:hover {
+    box-shadow: inset 0 0 0 1px hsl(var(--destructive) / 0.5), 0 0 20px hsl(var(--destructive) / 0.4);
+  }
+
+  @keyframes shiny-border-spin {
+    to {
+      --gradient-angle: 360deg;
+    }
+  }
+
+  .shiny-cta:active,
+  .shiny-cta-outline:active,
+  .shiny-cta-destructive:active {
+    transform: translateY(1px);
+  }
+
+  .shiny-cta::before,
+  .shiny-cta-outline::before,
+  .shiny-cta-destructive::before {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 0;
+    --size: calc(100% - 6px);
+    --position: 2px;
+    --space: 4px;
+    width: var(--size);
+    height: var(--size);
+    background: radial-gradient(circle at var(--position) var(--position), hsl(var(--foreground) / 0.3) 0.5px, transparent 0) padding-box;
+    background-size: var(--space) var(--space);
+    background-repeat: space;
+    mask-image: conic-gradient(from calc(var(--gradient-angle) + 45deg), black, transparent 10% 90%, black);
+    border-radius: inherit;
+    opacity: 0.4;
+  }
+
+  .shiny-cta::after,
+  .shiny-cta-outline::after,
+  .shiny-cta-destructive::after {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    width: 100%;
+    aspect-ratio: 1;
+    background: linear-gradient(-50deg, transparent, hsl(var(--primary) / 0.3), transparent);
+    mask-image: radial-gradient(circle at bottom, transparent 40%, black);
+    opacity: 0.6;
+    animation: shiny-shimmer 4s linear infinite;
+  }
+
+  .shiny-cta-outline::after {
+    background: linear-gradient(-50deg, transparent, hsl(var(--muted-foreground) / 0.2), transparent);
+  }
+
+  .shiny-cta-destructive::after {
+    background: linear-gradient(-50deg, transparent, hsl(var(--destructive) / 0.4), transparent);
+  }
+
+  .shiny-cta span,
+  .shiny-cta-outline span,
+  .shiny-cta-destructive span {
+    position: relative;
+    z-index: 2;
+    display: inline-block;
+  }
+
+  .shiny-cta span::before,
+  .shiny-cta-outline span::before,
+  .shiny-cta-destructive span::before {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: -1;
+    --size: calc(100% + 1rem);
+    width: var(--size);
+    height: var(--size);
+    box-shadow: inset 0 -1ex 2rem 4px hsl(var(--primary) / 0.2);
+    opacity: 0;
+    border-radius: inherit;
+    transition: opacity 800ms cubic-bezier(0.25, 1, 0.5, 1);
+    animation: shiny-breathe 4.5s linear infinite;
+  }
+
+  .shiny-cta-outline span::before {
+    box-shadow: inset 0 -1ex 2rem 4px hsl(var(--muted-foreground) / 0.1);
+  }
+
+  .shiny-cta-destructive span::before {
+    box-shadow: inset 0 -1ex 2rem 4px hsl(var(--destructive) / 0.3);
+  }
+
+  @keyframes shiny-shimmer {
+    to {
+      transform: translate(-50%, -50%) rotate(360deg);
+    }
+  }
+
+  @keyframes shiny-breathe {
+    0%, 100% {
+      transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+      transform: translate(-50%, -50%) scale(1.20);
+    }
+  }
+}
+
+@layer utilities {
+  .animate-fade-up {
+    animation: fadeUp 0.5s ease-out forwards;
+  }
+
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Hide external branding */
+a[href*="lovable.dev"],
+iframe[src*="lovable.dev"],
+div[style*="Editar com Lovable"],
+.lovable-badge {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  z-index: -9999 !important;
+}

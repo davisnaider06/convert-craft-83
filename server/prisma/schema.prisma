@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id // ID que vem do Clerk/Auth
+  email     String   @unique
+  credits   Int      @default(15) // Começa com 15
+  planType  String   @default("free") // free, pro, enterprise
+  createdAt DateTime @default(now())
+  
+  generations GenerationLog[]
+}
+
+model GenerationLog {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  prompt    String
+  cost      Int
+  modelUsed String   // "gemini" ou "groq"
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id])
+}

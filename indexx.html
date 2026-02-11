@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WHATSBOOST - Automação WhatsApp</title>
+    <link rel="icon" type="svg+xml" href="assets/logo.png">
+    <!-- tailwind CSS (via CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- animate on scroll (AOS) -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <!-- Google fonts - Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+    </style>
+</head>
+<body class="min-h-screen bg-black text-white">
+
+    <!-- Header -->
+    <header class="border-b border-green-500/20">
+        <div class="container mx-auto px-6 py-4">
+            <nav class="flex items-center justify-between">
+                <div class="text-xl font-bold text-green-400 flex items-center gap-2">
+                    <img src="assets/logo.png" alt="logo" class="h-20 w-auto">
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#recursos" class="text-gray-300 hover:text-green-400 transition-colors">
+                        Recursos
+                    </a>
+                    <a href="#planos" class="text-gray-300 hover:text-green-400 transition-colors">
+                        Planos
+                    </a>
+                    <a href="#contato" class="text-gray-300 hover:text-green-400 transition-colors">
+                        Contato
+                    </a>
+
+                    <a href="#portifolio" class="text-gray-300 hover:text-green-400 transition-colors">
+                        Serviços
+                    </a>
+
+
+                </div>
+                <a href="#planos">
+                <button class="bg-green-500 hover:bg-green-600 text-black font-semibold shadow-lg shadow-green-500/50 border border-green-400 py-2 px-4 rounded-lg">
+                    Começar Agora
+                </button>
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="py-20 relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-green-500/5 via-green-400/5 to-green-600/5"></div>
+        <div class="container mx-auto px-6 relative">
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+                <div data-aos="fade-right">
+                    <h1 class="text-5xl lg:text-6xl font-bold leading-tight mb-6">
+                        WhatsBoost – <span class="text-green-400">Automação de WhatsApp</span> para
+                        <span class="text-green-400">Expandir Seu Negócio</span>
+                    </h1>
+                    <div class="flex items-center gap-2 mb-6">
+                        <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg shadow-green-500/50">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-black">
+                                <rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect>
+                                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                                <line x1="17.5" x2="17.5" y1="6.5" y2="6.5"></line>
+                            </svg>
+                        </div>
+                        <span class="text-gray-400">Milhares de Reels Impulsionados Diariamente</span>
+                    </div>
+                    <p class="text-gray-400 text-lg mb-8 max-w-md">
+                        Transforme seus Reels do Instagram em viral! Enviamos automaticamente seus conteúdos para milhares de
+                        contatos no WhatsApp, aumentando sua visibilidade e construindo sua autoridade.
+                    </p>
+                </div>
+                <div class="flex justify-center" data-aos="fade-left">
+                    <div class="relative">
+                        <div class="w-80 h-96 bg-gradient-to-br from-gray-900 to-black rounded-3xl border border-green-500/30 shadow-2xl shadow-green-500/20 p-6">
+                            <div class="bg-green-500/20 rounded-2xl h-full flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-24 h-24 text-green-400">
+                                    <rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect>
+                                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                                    <line x1="17.5" x2="17.5" y1="6.5" y2="6.5"></line>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="absolute -top-4 -right-4 w-8 h-8 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-500/50"></div>
+                        <div class="absolute -bottom-4 -left-4 w-6 h-6 bg-green-400 rounded-full animate-pulse delay-1000 shadow-lg shadow-green-400/50"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Para Quem é Section -->
+    <section class="py-20" id="recursos">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-16 text-green-400" data-aos="fade-down">Para Quem é o WhatsBoost</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-gray-900/50 border-green-500/30 p-8 backdrop-blur-sm hover:border-green-500/50 transition-all duration-300 rounded-xl" data-aos="fade-up" data-aos-delay="100">
+                    <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center mb-6 shadow-lg shadow-green-500/50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-black">
+                            <rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect>
+                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                            <line x1="17.5" x2="17.5" y1="6.5" y2="6.5"></line>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4 text-white">Criadores de Conteúdo</h3>
+                    <p class="text-gray-400">
+                        Para criadores que fazem um bom trabalho no Instagram, mas sentem que pouca gente vê. Amplifique seu
+                        alcance e seja visto por milhares.
+                    </p>
+                </div>
+                <div class="bg-green-500/10 border-green-400 p-8 backdrop-blur-sm shadow-xl shadow-green-500/20 rounded-xl" data-aos="fade-up" data-aos-delay="200">
+                    <div class="w-12 h-12 bg-black rounded-lg flex items-center justify-center mb-6 border border-green-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-green-400">
+                            <polyline points="17 1 21 5 17 9"></polyline>
+                            <path d="M21 5H3"></path>
+                            <path d="M18 18h-8"></path>
+                            <path d="M21 12H8"></path>
+                            <path d="M21 16H8"></path>
+                            <path d="M12 21l-4-4-4 4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4 text-white">Futuros Influenciadores</h3>
+                    <p class="text-gray-300">
+                        Quem deseja se tornar influenciador ou ser o influencer da sua própria marca. Construa sua autoridade e
+                        seja lembrado pelo público certo.
+                    </p>
+                </div>
+                <div class="bg-gray-900/50 border-green-500/30 p-8 backdrop-blur-sm hover:border-green-500/50 transition-all duration-300 rounded-xl" data-aos="fade-up" data-aos-delay="300">
+                    <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center mb-6 shadow-lg shadow-green-500/50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-black">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4 text-white">Empresas e Profissionais</h3>
+                    <p class="text-gray-400">
+                        Empresas e profissionais que querem mostrar seus projetos e conteúdos para milhares de pessoas todos os
+                        dias.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Como Funciona Section -->
+    <section class="py-20">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-4 text-green-400" data-aos="fade-down">Como Funciona</h2>
+            <p class="text-center text-gray-400 mb-16 max-w-2xl mx-auto" data-aos="fade-down" data-aos-delay="100">
+                Processo simples e automatizado para impulsionar seus Reels
+            </p>
+
+            <div class="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+                <div class="text-center" data-aos="fade-up" data-aos-delay="200">
+                    <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/50">
+                        <span class="text-black font-bold text-xl">1</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4 text-white">Escolha seu Reels</h3>
+                    <p class="text-gray-400">
+                        Você escolhe o Reels do Instagram que deseja impulsionar e nos envia o link.
+                    </p>
+                </div>
+                <div class="text-center" data-aos="fade-up" data-aos-delay="300">
+                    <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/50">
+                        <span class="text-black font-bold text-xl">2</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4 text-white">Disparo Automático</h3>
+                    <p class="text-gray-400">
+                        O WhatsBoost dispara automaticamente o link para milhares de contatos no WhatsApp, na região que você
+                        escolher.
+                    </p>
+                </div>
+                <div class="text-center" data-aos="fade-up" data-aos-delay="400">
+                    <div class="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/50">
+                        <span class="text-black font-bold text-xl">3</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-4 text-white">Resultados Garantidos</h3>
+                    <p class="text-gray-400">
+                        Tudo feito pelo nosso WhatsApp programado, sem risco de bloqueio e sem precisar de acessos à sua conta.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefícios Section -->
+    <section class="py-20">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-16 text-green-400" data-aos="fade-down">Benefícios</h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="text-center" data-aos="fade-up" data-aos-delay="100">
+                    <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-green-400">
+                            <polyline points="17 1 21 5 17 9"></polyline>
+                            <path d="M21 5H3"></path>
+                            <path d="M18 18h-8"></path>
+                            <path d="M21 12H8"></path>
+                            <path d="M21 16H8"></path>
+                            <path d="M12 21l-4-4-4 4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2 text-white">Mais Visibilidade</h3>
+                    <p class="text-gray-400 text-sm">Seu Reels chega a muito mais pessoas, diariamente</p>
+                </div>
+                <div class="text-center" data-aos="fade-up" data-aos-delay="200">
+                    <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-green-400">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2 text-white">Construção de Autoridade</h3>
+                    <p class="text-gray-400 text-sm">Seja lembrado e visto pelo público certo</p>
+                </div>
+                <div class="text-center" data-aos="fade-up" data-aos-delay="300">
+                    <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-green-400">
+                            <path d="M12 8V4H8"></path>
+                            <rect width="16" height="12" x="4" y="8" rx="2"></rect>
+                            <path d="M2 14h2"></path>
+                            <path d="M20 14h2"></path>
+                            <path d="M15 13v2"></path>
+                            <path d="M9 13v2"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2 text-white">Segurança e Agilidade</h3>
+                    <p class="text-gray-400 text-sm">Disparos diários sem risco e sem complicação</p>
+                </div>
+                <div class="text-center" data-aos="fade-up" data-aos-delay="400">
+                    <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-green-500/50">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-green-400">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2 text-white">Teste Gratuito</h3>
+                    <p class="text-gray-400 text-sm">No 1º mês você paga apenas o valor do anúncio</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Plans Section -->
+    <section class="py-20" id="planos">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-4 text-green-400" data-aos="fade-down">Nossos Planos</h2>
+            <p class="text-center text-gray-400 mb-16 max-w-2xl mx-auto" data-aos="fade-down" data-aos-delay="100">
+                Escolha o plano ideal para impulsionar seus Reels e expandir seu alcance
+            </p>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 max-w-7xl mx-auto">
+                <!-- Plano 1 -->
+                <div class="bg-gray-900/50 border-green-500/30 p-6 backdrop-blur-sm hover:border-green-500/50 transition-all duration-300 relative rounded-xl" data-aos="fade-up" data-aos-delay="100">
+                    <div class="text-center mb-6">
+                        <h3 class="text-xl font-bold text-white mb-2">Iniciante</h3>
+                        <div class="text-3xl font-bold text-green-400 mb-2">R$ 100</div>
+                        <p class="text-gray-400 text-sm">7 dias de impulsionamento</p>
+                    </div>
+                    <ul class="space-y-3 mb-6 text-sm">
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">1.500 a 2.000 contatos/dia</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">Período: 7 dias</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">Segmentação por região</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">Relatório de resultados</span>
+                        </li>
+                    </ul>
+                    <a href="#contato" class="block w-full text-center bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/50 hover:border-green-500 font-semibold py-2 px-4 rounded-lg text-sm transition-all duration-300">Começar Agora</a>
+                </div>
+
+                <!-- Plano 2 -->
+                <div class="bg-gray-900/50 border-green-500/30 p-6 backdrop-blur-sm hover:border-green-500/50 transition-all duration-300 relative rounded-xl" data-aos="fade-up" data-aos-delay="200">
+                    <div class="text-center mb-6">
+                        <h3 class="text-xl font-bold text-white mb-2">Crescimento</h3>
+                        <div class="text-3xl font-bold text-green-400 mb-2">R$ 200</div>
+                        <p class="text-gray-400 text-sm">10 dias de impulsionamento</p>
+                    </div>
+                    <ul class="space-y-3 mb-6 text-sm">
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">3.000 a 3.500 contatos/dia</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">Período: 10 dias</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">Segmentação avançada</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">Suporte prioritário</span>
+                        </li>
+                    </ul>
+                    <a href="#contato" class="block w-full text-center bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/50 hover:border-green-500 font-semibold py-2 px-4 rounded-lg text-sm transition-all duration-300">Começar Agora</a>
+                </div>
+
+                <!-- Plano 3 (Mais Popular) -->
+                <div class="bg-green-500/10 border-green-400 p-6 backdrop-blur-sm shadow-xl shadow-green-500/20 relative rounded-xl" data-aos="fade-up" data-aos-delay="300">
+                    <div class="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        <div class="bg-green-500 text-black px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 text-black">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                            </svg>
+                            Mais Popular
+                        </div>
+                    </div>
+                    <div class="text-center mb-6 pt-2">
+                        <h3 class="text-xl font-bold mb-2 text-white">Profissional</h3>
+                        <div class="text-3xl font-bold text-green-400 mb-2">R$ 400</div>
+                        <p class="text-gray-400 text-sm">12 dias de impulsionamento</p>
+                    </div>
+                    <ul class="space-y-3 mb-6 text-sm">
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">4.000 a 5.500 contatos/dia</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">Período: 12 dias</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">Múltiplas regiões</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">Análises detalhadas</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">Suporte 24/7</span>
+                        </li>
+                    </ul>
+                    <a href="#contato" class="block w-full text-center bg-green-500 hover:bg-green-600 text-black font-semibold py-2 px-4 rounded-lg shadow-lg shadow-green-500/50 transition-all duration-300 hover:scale-105">Começar Agora</a>
+                </div>
+
+                <!-- Plano 4 -->
+                <div class="bg-gray-900/50 border-green-500/30 p-6 backdrop-blur-sm hover:border-green-500/50 transition-all duration-300 relative rounded-xl" data-aos="fade-up" data-aos-delay="400">
+                    <div class="text-center mb-6">
+                        <h3 class="text-xl font-bold text-white mb-2">Avançado</h3>
+                        <div class="text-3xl font-bold text-green-400 mb-2">R$ 600</div>
+                        <p class="text-gray-400 text-sm">15 dias de impulsionamento</p>
+                    </div>
+                    <ul class="space-y-3 mb-6 text-sm">
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">6.000 a 6.500 contatos/dia</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">Período: 15 dias</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">Segmentação premium</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">Consultoria estratégica</span>
+                        </li>
+                    </ul>
+                    <a href="#contato" class="block w-full text-center bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/50 hover:border-green-500 font-semibold py-2 px-4 rounded-lg text-sm transition-all duration-300">Falar com Consultor</a>
+                </div>
+
+                <!-- Plano 5 -->
+                <div class="bg-gray-900/50 border-green-500/30 p-6 backdrop-blur-sm hover:border-green-500/50 transition-all duration-300 relative rounded-xl" data-aos="fade-up" data-aos-delay="500">
+                    <div class="text-center mb-6">
+                        <h3 class="text-xl font-bold text-white mb-2">Premium</h3>
+                        <div class="text-3xl font-bold text-green-400 mb-2">R$ 900</div>
+                        <p class="text-gray-400 text-sm">15 dias de impulsionamento</p>
+                    </div>
+                    <ul class="space-y-3 mb-6 text-sm">
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">8.500 a 9.000 contatos/dia</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">Período: 15 dias</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">Cobertura nacional</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">Gerente dedicado</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-green-400">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span class="text-gray-300">Relatórios personalizados</span>
+                        </li>
+                    </ul>
+                    <a href="#contato" class="block w-full text-center bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/50 hover:border-green-500 font-semibold py-2 px-4 rounded-lg text-sm transition-all duration-300">Falar com Consultor</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Case/Portfolio Section -->
+    <section class="py-20" id="portifolio">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-4 text-green-400" data-aos="fade-down">Não para por aqui: descubra nossos outros serviços</h2>
+            <p class="text-center text-gray-400 mb-16 max-w-2xl mx-auto" data-aos="fade-down" data-aos-delay="100">
+                Conheça alguns dos projetos que desenvolvemos para nossos clientes
+            </p>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                <!-- Projeto 1 - Site Profissional -->
+                <div class="bg-gray-900/50 border-green-500/30 backdrop-blur-sm hover:border-green-500/50 transition-all duration-300 overflow-hidden group rounded-xl">
+                    <div class="relative">
+                        
+                        <img src="assets/corteMilGrau.png" alt="Site Corporativo MentorPro" class="w-full h-48 object-cover object-top transition-transform duration-300 group-hover:scale-105" />
+                        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                            <a href="https://cortemilgrau.netlify.app" target="_blank">
+                            <button class="bg-green-500 hover:bg-green-600 text-black font-semibold py-2 px-4 rounded-lg flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                </svg>
+                                Ver Projeto
+                            </button>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-white mb-2">Site Corporativo</h3>
+                        <p class="text-gray-400 text-sm mb-4">
+                            Site institucional moderno e responsivo para barbearia
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded border border-green-500/30">
+                                React
+                            </span>
+                            <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded border border-green-500/30">
+                                Next.js
+                            </span>
+                            <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded border border-green-500/30">
+                                Tailwind
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Projeto 2 - E-commerce -->
+                <div class="bg-gray-900/50 border-green-500/30 backdrop-blur-sm hover:border-green-500/50 transition-all duration-300 overflow-hidden group rounded-xl">
+                    <div class="relative">
+                        <div class="w-full h-48 bg-gradient-to-br from-green-500/20 to-green-600/20 flex items-center justify-center">
+                            <img src="assets/neoTek.png" alt="Site Corporativo MentorPro" class="w-full h-48 object-cover object-top transition-transform duration-300 group-hover:scale-105"/>
+                        </div>
+                        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                            <a href="https://neotek.netlify.app" target="_blank">
+                            <button class="bg-green-500 hover:bg-green-600 text-black font-semibold py-2 px-4 rounded-lg flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                </svg>
+                                Ver Projeto
+                            </button>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-white mb-2">Loja Virtual</h3>
+                        <p class="text-gray-400 text-sm mb-4">
+                            E-commerce completo com carrinho, pagamentos e gestão de produtos
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded border border-green-500/30">
+                                E-commerce
+                            </span>
+                            <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded border border-green-500/30">
+                                Stripe
+                            </span>
+                            <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded border border-green-500/30">
+                                Dashboard
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Projeto 3 - Landing Page -->
+                <div class="bg-gray-900/50 border-green-500/30 backdrop-blur-sm hover:border-green-500/50 transition-all duration-300 overflow-hidden group rounded-xl">
+                    <div class="relative">
+                        <div class="w-full h-48 bg-gradient-to-br from-green-500/20 to-green-600/20 flex items-center justify-center">
+                            <img src="assets/mentorPro.png" alt="Site Corporativo MentorPro" class="w-full h-48 object-cover object-top transition-transform duration-300 group-hover:scale-105"/>    
+                        </div>
+                        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                            <a href="https://mentor-pro.netlify.app" target="_blank">
+                                <button class="bg-green-500 hover:bg-green-600 text-black font-semibold py-2 px-4 rounded-lg flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                        <polyline points="15 3 21 3 21 9"></polyline>
+                                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                                    </svg>
+                                    Ver Projeto
+                                </button>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-white mb-2">Landing Page</h3>
+                        <p class="text-gray-400 text-sm mb-4">Página de conversão otimizada, moderno e responsiva para empresa de consultoria e mentoria</p>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded border border-green-500/30">
+                                Conversão
+                            </span>
+                            <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded border border-green-500/30">
+                                SEO
+                            </span>
+                            <span class="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded border border-green-500/30">
+                                Analytics
+                            </span>
+                        </div>
+                    </div>
+                </div>
+        </div>
+    </section>
+
+    <!-- Case/Portfolio Social media Section -->
+    <section class="py-20" id="portifolio">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-4 text-green-400" data-aos="fade-down">Não é só site: criamos impacto nas redes sociais</h2>
+            <p class="text-center text-gray-400 mb-16 max-w-2xl mx-auto" data-aos="fade-down" data-aos-delay="100">
+                Conheça alguns dos trabalho que fizemos com os nossos clientes
+            </p>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                <!-- Projeto 1 - post 1-->
+                <div class="bg-gray-900/50 border-green-500/30 backdrop-blur-sm hover:border-green-500/50 transition-all duration-300 overflow-hidden group rounded-xl flex flex-col h-full">
+                    <div class="relative flex-shrink-0">
+                        <img src="assets/postSM.jpg" alt="post modern" class="w-full aspect-square object-cover object-top transition-transform duration-300 group-hover:scale-105" />
+                    </div>
+                    <div class="p-6 flex flex-col flex-1">
+                        <h3 class="text-xl font-bold text-white mb-2">Estilo que Inspira</h3>
+                        <p class="text-gray-400 text-sm mb-4">
+                           Post elegante que valoriza sofisticação e modernidade. Perfeito para divulgar lançamentos de coleção e atrair clientes para o site ou loja.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Projeto 2 - post 2 -->
+                <div class="bg-gray-900/50 border-green-500/30 backdrop-blur-sm hover:border-green-500/50 transition-all duration-300 overflow-hidden group rounded-xl flex flex-col h-full">
+                    <div class="relative flex-shrink-0">
+                        <div class="w-full aspect-square bg-gradient-to-br from-green-500/20 to-green-600/20 flex items-center justify-center">
+                            <img src="assets/post2SM.jpg" alt="post sobrancelha" class="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"/>
+                        </div>
+                    </div>
+                    <div class="p-6 flex flex-col flex-1">
+                        <h3 class="text-xl font-bold text-white mb-2">Beleza em Cada Detalhe</h3>
+                        <p class="text-gray-400 text-sm mb-4">
+                            Um post leve e atrativo, voltado para estética e cuidados pessoais. Incentiva agendamentos de forma criativa e reforça a importância da autoestima.
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Projeto 3 - post hamburguer -->
+                <div class="bg-gray-900/50 border-green-500/30 backdrop-blur-sm hover:border-green-500/50 transition-all duration-300 overflow-hidden group rounded-xl flex flex-col h-full">
+                    <div class="relative flex-shrink-0">
+                        <div class="w-full aspect-square bg-gradient-to-br from-green-500/20 to-green-600/20 flex items-center justify-center">
+                            <img src="assets/postSM3.jpg" alt="post hamburguer" class="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"/>    
+                        </div>
+                    </div>
+                    <div class="p-6 flex flex-col flex-1">
+                        <h3 class="text-xl font-bold text-white mb-2">Desafio do Sabor</h3>
+                        <p class="text-gray-400 text-sm mb-4">Post provocativo para despertar a curiosidade e abrir o apetite do público. Ideal para engajamento e gerar pedidos imediatos com CTA direto.</p>
+                    </div>
+                </div>
+
+
+                
+            <div class="flex justify-center mt-12 ">
+                <div class="flex flex-col items-center justify-center w-full">
+                    <p class="text-gray-400 mb-4 text-center">Gostou do que viu? Vamos criar algo incrível juntos!</p>
+                    <button
+                        class="bg-green-500 hover:bg-green-600 text-black font-semibold shadow-lg shadow-green-500/50 border border-green-400 py-2 px-4 rounded-lg"
+                        onclick="document.getElementById('contato').scrollIntoView({ behavior: 'smooth' });"
+                    >
+                        Solicitar Orçamento
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Contact Form Section -->
+    <section class="py-20" id="contato">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-4 text-green-400" data-aos="fade-down">Solicite Seu Plano</h2>
+            <p class="text-center text-gray-400 mb-12 max-w-2xl mx-auto" data-aos="fade-down" data-aos-delay="100">
+                Preencha o formulário abaixo e nossa equipe entrará em contato para personalizar a melhor solução para
+                impulsionar seus Reels.
+            </p>
+
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+                <div class="flex justify-center space-x-8" data-aos="zoom-in-right">
+                    <div class="max-w-xs bg-gradient-to-br from-gray-900 to-black rounded-2xl border border-green-500/30 p-4 shadow-2xl shadow-green-500/20">
+                        <div class="bg-green-500/20 rounded-xl h-48 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-16 h-16 text-green-400">
+                                <rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect>
+                                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                                <line x1="17.5" x2="17.5" y1="6.5" y2="6.5"></line>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="max-w-xs bg-gradient-to-br from-gray-900 to-black rounded-2xl border border-green-500/30 p-4 shadow-2xl shadow-green-500/20">
+                        <div class="bg-green-500/20 rounded-xl h-48 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-16 h-16 text-green-400">
+                                <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-900/50 rounded-2xl border border-green-500/30 p-8 backdrop-blur-sm shadow-2xl shadow-green-500/10" data-aos="zoom-in-left">
+                    <form id="contact-form" class="space-y-6">
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-green-400 mb-2">
+                                Nome Completo *
+                            </label>
+                            <input
+                                id="name"
+                                name="name"
+                                type="text"
+                                placeholder="Digite seu nome completo"
+                                class="bg-black/50 border-green-500/30 text-white placeholder-gray-400 focus:border-green-500 focus:ring-green-500/20 backdrop-blur-sm w-full rounded-md px-3 py-2"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label for="instagram" class="block text-sm font-medium text-green-400 mb-2">
+                                Instagram *
+                            </label>
+                            <input
+                                id="instagram"
+                                name="instagram"
+                                type="text"
+                                placeholder="@seuinstagram"
+                                class="bg-black/50 border-green-500/30 text-white placeholder-gray-400 focus:border-green-500 focus:ring-green-500/20 backdrop-blur-sm w-full rounded-md px-3 py-2"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label for="phone" class="block text-sm font-medium text-green-400 mb-2">
+                                Telefone/WhatsApp *
+                            </label>
+                            <input
+                                id="phone"
+                                name="phone"
+                                type="tel"
+                                placeholder="(11) 99999-9999"
+                                class="bg-black/50 border-green-500/30 text-white placeholder-gray-400 focus:border-green-500 focus:ring-green-500/20 backdrop-blur-sm w-full rounded-md px-3 py-2"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label for="plan" class="block text-sm font-medium text-green-400 mb-2">
+                                Plano Desejado *
+                            </label>
+                            <select
+                                id="plan"
+                                name="plan"
+                                class="w-full bg-black/50 border border-green-500/30 text-white rounded-md px-3 py-2 focus:border-green-500 focus:ring-green-500/20 backdrop-blur-sm"
+                                required
+                            >
+                                <option value="">Selecione um plano</option>
+                                <option value="Iniciante - R$ 100 (7 dias)">Iniciante - R$ 100 (7 dias)</option>
+                                <option value="Crescimento - R$ 200 (10 dias)">Crescimento - R$ 200 (10 dias)</option>
+                                <option value="Profissional - R$ 400 (12 dias)">Profissional - R$ 400 (12 dias)</option>
+                                <option value="Avançado - R$ 600 (15 dias)">Avançado - R$ 600 (15 dias)</option>
+                                <option value="Premium - R$ 900 (15 dias)">Premium - R$ 900 (15 dias)</option>
+                                <option value="Personalizado - Sob consulta">Personalizado - Sob consulta</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="message" class="block text-sm font-medium text-green-400 mb-2">
+                                Mensagem (Opcional)
+                            </label>
+                            <textarea
+                                id="message"
+                                name="message"
+                                rows="4"
+                                placeholder="Conte-nos sobre seus objetivos com o impulsionamento..."
+                                class="w-full bg-black/50 border border-green-500/30 text-white placeholder-gray-400 rounded-md px-3 py-2 focus:border-green-500 focus:ring-green-500/20 backdrop-blur-sm resize-none"
+                            ></textarea>
+                        </div>
+
+                        <button
+                            type="submit"
+                            class="w-full bg-green-500 hover:bg-green-600 text-black font-semibold py-3 shadow-lg shadow-green-500/50 hover:shadow-green-500/70 transition-all border border-green-400 hover:scale-105 rounded-lg"
+                        >
+                            Enviar via WhatsApp
+                        </button>
+
+                        <p class="text-xs text-gray-400 text-center">
+                            * Campos obrigatórios. Responderemos em até 24 horas.
+                        </p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-green-500/20 py-12">
+        <div class="container mx-auto px-6">
+            <div class="grid md:grid-cols-4 gap-8 mb-8">
+                <div>
+                    <div class="text-xl font-bold text-green-400 mb-4 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+                            <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"></path>
+                        </svg>
+                        WHATSBOOST
+                    </div>
+                    <p class="text-gray-400 text-sm">
+                        Impulsione seus Reels e expanda seu alcance com automação inteligente de WhatsApp.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4 text-green-400">Serviços</h4>
+                    <div class="space-y-2 text-gray-400">
+                        <a href="#" class="block hover:text-green-400 transition-colors">
+                            Impulsionamento de Reels
+                        </a>
+                        <a href="#portifolio" class="block hover:text-green-400 transition-colors">
+                            Sites Profissionais
+                        </a>
+                        <a href="#portifolio" class="block hover:text-green-400 transition-colors">
+                            E-commerce
+                        </a>
+                        <a href="#portifolio" class="block hover:text-green-400 transition-colors">
+                            Landing Pages
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4 text-green-400">Suporte</h4>
+                    <div class="space-y-2 text-gray-400">
+                        <a href="#" class="block hover:text-green-400 transition-colors">
+                            Como Funciona
+                        </a>
+                        <a href="#planos" class="block hover:text-green-400 transition-colors">
+                            Planos
+                        </a>
+                        
+                        <a href="#contato" class="block hover:text-green-400 transition-colors">
+                            Contato
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4 text-green-400">Contato</h4>
+                    <div class="space-y-2 text-gray-400">
+                        <p class="text-sm">WhatsApp: (13) 99213-5848</p>
+                        <p class="text-sm">Atendimento 24/7</p>
+                        <p class="text-sm">Consultoria gratuita</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-green-500/20 pt-8">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="flex items-center gap-4">
+                        <input
+                            placeholder="Seu email para novidades"
+                            class="bg-gray-900/50 border-green-500/30 text-white placeholder-gray-400 focus:border-green-500 backdrop-blur-sm px-3 py-2 rounded-md"
+                        />
+                        <button class="bg-green-500 hover:bg-green-600 text-black shadow-lg shadow-green-500/50 border border-green-400 py-2 px-4 rounded-lg">
+                            Cadastrar
+                        </button>
+                    </div>
+                    <a href="https://www.instagram.com/whatsboostoficial/" target="_blank">
+                    <div class="flex gap-4">
+                        <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center hover:scale-110 transition-transform cursor-pointer shadow-lg shadow-green-500/50">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-black">
+                                <rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect>
+                                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                                <line x1="17.5" x2="17.5" y1="6.5" y2="6.5"></line>
+                            </svg>
+                        </div>
+                    </div>
+                    </a>
+                </div>
+                <div class="text-center text-gray-400 text-sm mt-8">
+                    © 2024 WhatsBoost - Todos os direitos reservados
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- js -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({
+            duration: 800,
+            once: true,
+        });
+
+        document.addEventListener("DOMContentLoaded", function() {
+            document.getElementById("contact-form").addEventListener("submit", function(event) {
+                event.preventDefault();
+
+                const formData = new FormData(event.currentTarget);
+
+                const name = formData.get("name");
+                const instagram = formData.get("instagram");
+                const phone = formData.get("phone");
+                const plan = formData.get("plan");
+                const message = formData.get("message") || "Sem mensagem adicional";
+
+                const whatsappMessage = `*Nova Solicitação de Plano WhatsBoost*%0A%0A*Nome:* ${name}%0A*Instagram:* ${instagram}%0A*Telefone:* ${phone}%0A*Plano:* ${plan}%0A*Mensagem:* ${message}`;
+
+                const whatsappURL = `https://wa.me/5513992135848?text=${whatsappMessage}`;
+                window.open(whatsappURL, "_blank");
+            });
+        });
+    </script>
+</body>
+</html>
