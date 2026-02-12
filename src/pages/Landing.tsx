@@ -33,7 +33,7 @@ export default function Landing() {
     if (!isSignedIn) {
         openSignIn();
     } else {
-        navigate("/studio");
+        navigate("/dashboard");
     }
   };
 
@@ -218,7 +218,9 @@ export default function Landing() {
         </div>
       </main>
 
-      {/* Footer */}
+
+      {/* Comentado para remoção temporária do footer 12/02/26 */}
+        {/* Footer
       <footer className="absolute bottom-0 left-0 right-0 border-t border-border/50 bg-background/80 backdrop-blur-sm py-3 sm:py-4">
         <div className="container flex flex-col items-center justify-center gap-2 text-xs sm:text-sm text-muted-foreground px-4">
           <p className="text-center">© 2025 Boder AI. Todos os direitos reservados.</p>
@@ -231,7 +233,7 @@ export default function Landing() {
             </Link>
           </div>
         </div>
-      </footer>
+      </footer> */}
     </div>
   );
 }
