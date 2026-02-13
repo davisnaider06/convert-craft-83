@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useUser, useClerk } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
 import { premiumToast } from "@/components/ui/premium-toast";
@@ -36,7 +36,9 @@ export default function Studio() {
   const { user, isSignedIn } = useUser();
   const { openSignIn } = useClerk();
   const navigate = useNavigate();
+  const location = useLocation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasAutoSentInitialPrompt = useRef(false);
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -78,15 +80,16 @@ export default function Studio() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isGenerating]);
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
+  const handleSendMessage = async (forcedText?: string) => {
+    const textToSend = (forcedText ?? inputValue).trim();
+    if (!textToSend) return;
 
     if (!isSignedIn) {
       openSignIn();
       return;
     }
 
-    const userText = inputValue;
+    const userText = textToSend;
     setInputValue("");
 
     // Adiciona a mensagem do utilizador ao chat
@@ -213,6 +216,17 @@ export default function Studio() {
       setIsGenerating(false);
     }
   };
+
+  useEffect(() => {
+    const navState = location.state as { initialPrompt?: string } | null;
+    const promptFromCreate = navState?.initialPrompt?.trim();
+
+    if (!promptFromCreate || hasAutoSentInitialPrompt.current || !isSignedIn) return;
+
+    hasAutoSentInitialPrompt.current = true;
+    setInputValue(promptFromCreate);
+    void handleSendMessage(promptFromCreate);
+  }, [location.state, isSignedIn]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {

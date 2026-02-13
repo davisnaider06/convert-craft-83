@@ -124,7 +124,7 @@ export default function Dashboard() {
 
   const handleNewSite = () => {
     play("confirm");
-    navigate("/studio");
+    navigate("/create");
   };
 
   const openDeleteModal = (site: GeneratedSite) => {

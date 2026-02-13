@@ -83,9 +83,9 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
           onClose();
           onSuccess();
           // Se estiver na página Create, o useEffect vai detectar o user
-          // Senão, redireciona para o dashboard
+          // Senão, redireciona para create
           if (!window.location.pathname.includes('/create')) {
-            navigate("/dashboard");
+            navigate("/create");
           }
         }, 800);
       } else {
@@ -109,9 +109,9 @@ export function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
           onClose();
           onSuccess();
           // Se estiver na página Create, o useEffect vai detectar o user
-          // Senão, redireciona para o dashboard
+          // Senão, redireciona para create
           if (!window.location.pathname.includes('/create')) {
-            navigate("/dashboard");
+            navigate("/create");
           }
         }, 800);
       }

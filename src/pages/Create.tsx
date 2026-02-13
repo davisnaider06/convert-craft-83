@@ -122,6 +122,15 @@ export default function Create() {
     setData({ ...data, template });
   };
 
+  const handleContinueFromCustomizations = () => {
+    play("transition");
+    navigate("/studio", {
+      state: {
+        initialPrompt: data.descricao,
+      },
+    });
+  };
+
   const handleGenerate = async () => {
     if (!data.template) {
       premiumToast.error("Selecione um template");
@@ -612,7 +621,7 @@ export default function Create() {
             Voltar
           </Button>
           <ShinyButton
-            onClick={step === 4 ? handleGenerate : handleNext}
+            onClick={step === 4 ? handleGenerate : step === 3 ? handleContinueFromCustomizations : handleNext}
             disabled={!canProceed()}
             size="default"
             className="min-w-[140px] gap-2"

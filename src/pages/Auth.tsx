@@ -23,9 +23,9 @@ export default function Auth() {
 
       const pendingPlan = sessionStorage.getItem("pendingPlan");
       
-      // Se já estiver logado e não tiver plano pendente, vai pro dashboard
+      // Se já estiver logado e não tiver plano pendente, vai para create
       if (!pendingPlan) {
-        navigate("/dashboard");
+        navigate("/create");
         return;
       }
 
@@ -38,7 +38,7 @@ export default function Auth() {
       setTimeout(() => {
          // Aqui entra seu link real de pagamento futuramente
          window.open("https://google.com", "_blank"); 
-         navigate("/dashboard");
+         navigate("/create");
       }, 1500);
     };
 

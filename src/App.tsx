@@ -54,8 +54,8 @@ const App = () => (
             <Route path="/privacy" element={<Privacy />} />
             
             {/* Redireciona logins antigos para o Clerk */}
-            <Route path="/auth" element={<Navigate to="/dashboard" replace />} /> 
-            <Route path="/reset-password" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/auth" element={<Navigate to="/create" replace />} /> 
+            <Route path="/reset-password" element={<Navigate to="/create" replace />} />
 
             {/* ==================== ROTAS PRIVADAS ==================== */}
             <Route
@@ -74,6 +74,16 @@ const App = () => (
                 </RequireAuth>
               }
             />
+
+            <Route
+              path="/create"
+              element={
+                <RequireAuth>
+                  <Create />
+                </RequireAuth>
+              }
+            />
+
             <Route
               path="/preview/:id"
               element={
