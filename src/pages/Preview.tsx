@@ -26,7 +26,8 @@ import {
   RefreshCw,
   Send,
   History,
-  Sparkles, // <-- IMPORT ADICIONADO AQUI
+  Sparkles,
+  Play, // <-- IMPORT ADICIONADO AQUI
 } from "lucide-react";
 import boderLogo from "@/assets/boder-logo.png";
 
@@ -190,6 +191,10 @@ export default function Preview() {
     premiumToast.success("URL copiada!");
   };
 
+  const historicChat = () => {
+    navigate("/studio")
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -250,7 +255,7 @@ export default function Preview() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => premiumToast.info("Histórico em breve!")}
+              onClick={() => historicChat()}
               className="gap-2"
             >
               <History className="h-4 w-4" />
