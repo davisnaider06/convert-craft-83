@@ -27,3 +27,17 @@ model GenerationLog {
   
   user      User     @relation(fields: [userId], references: [id])
 }
+
+model Site {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  name          String?
+  description   String?
+  content       Json?
+  is_published  Boolean  @default(false)
+  subdomain     String?  @unique  // <--- IMPORTANTE: @unique aqui
+  custom_domain String?
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+}

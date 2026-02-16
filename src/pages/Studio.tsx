@@ -21,6 +21,7 @@ import {
   Code2,
   LayoutTemplate,
 } from "lucide-react";
+
 const isPaid = false;
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
@@ -53,7 +54,12 @@ export default function Studio() {
   const [siteData, setSiteData] = useState<any | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("desktop");
   const [credits, setCredits] = useState<number | string>("-");
+  
+  // --- ESTADOS PARA PUBLICAÇÃO ---
   const [currentSiteId, setCurrentSiteId] = useState<string | null>(null);
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const [subdomainInput, setSubdomainInput] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
 
   // Busca os créditos iniciais
   useEffect(() => {
@@ -80,6 +86,7 @@ export default function Studio() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isGenerating]);
 
+  // --- FUNÇÃO DE ENVIO DE MENSAGEM (CHAT) ---
   const handleSendMessage = async (forcedText?: string) => {
     const textToSend = (forcedText ?? inputValue).trim();
     if (!textToSend) return;
@@ -105,7 +112,7 @@ export default function Studio() {
       // Lógica Inteligente: Se já existe um site, pede para AJUSTAR. Se não, pede para CRIAR.
       let promptParaBackend = "";
       if (siteData) {
-        // PROMPT DE EDIÇÃO (Mais agressivo e claro)
+        // PROMPT DE EDIÇÃO
         promptParaBackend = `
           O usuário quer fazer uma ALTERAÇÃO no site atual.
           PEDIDO DO USUÁRIO: "${userText}"
@@ -217,6 +224,45 @@ export default function Studio() {
     }
   };
 
+  // --- NOVA FUNÇÃO: PUBLICAR SITE ---
+  const handlePublishConfirm = async () => {
+    // Validações básicas
+    if (!subdomainInput || !currentSiteId) {
+      premiumToast.error("Erro", "Salve o site gerando algo antes de publicar.");
+      return;
+    }
+    
+    setIsPublishing(true);
+
+    try {
+      const response = await fetch(`${API_URL}/api/sites/publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          siteId: currentSiteId, // Usa o ID que salvamos no localStorage
+          subdomain: subdomainInput,
+          userId: user?.id
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erro desconhecido");
+
+      premiumToast.success("Site Publicado!", "Seu site já está no ar.");
+      setIsPublishModalOpen(false);
+      
+      // Abre o site novo em outra aba para o cliente ver
+      window.open(`http://${subdomainInput}.boder.app`, '_blank');
+
+    } catch (error: any) {
+      console.error(error);
+      premiumToast.error("Erro ao publicar", error.message);
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  // Efeitos iniciais e atalhos
   useEffect(() => {
     const navState = location.state as { initialPrompt?: string } | null;
     const promptFromCreate = navState?.initialPrompt?.trim();
@@ -351,7 +397,7 @@ export default function Studio() {
               size="icon"
               variant="ghost"
               className="absolute right-1 bottom-1 h-9 w-9 text-slate-400 hover:text-primary hover:bg-primary/10 disabled:opacity-50"
-              onClick={handleSendMessage}
+              onClick={() => handleSendMessage()}
               disabled={!inputValue.trim() || isGenerating}
             >
               <Send className="h-4 w-4" />
@@ -373,12 +419,12 @@ export default function Studio() {
         <header className="h-16 flex items-center justify-between px-6 bg-white border-b border-slate-200 z-10 shadow-sm">
           <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg border border-slate-200/60">
             <Button
-              variant="ghost" // Mantemos ghost para não haver conflito de cores do tema
+              variant={viewMode === "desktop" ? "secondary" : "ghost"}
               size="sm"
               onClick={() => setViewMode("desktop")}
               className={`h-8 px-3 rounded-md gap-2 transition-all duration-200 ${
                 viewMode === "desktop"
-                  ? "bg-white shadow-sm text-slate-900" // Fundo branco e texto escuro para contraste
+                  ? "bg-white shadow-sm text-slate-900"
                   : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50"
               }`}
             >
@@ -389,7 +435,7 @@ export default function Studio() {
             </Button>
 
             <Button
-              variant="ghost"
+              variant={viewMode === "mobile" ? "secondary" : "ghost"}
               size="sm"
               onClick={() => setViewMode("mobile")}
               className={`h-8 px-3 rounded-md gap-2 transition-all duration-200 ${
@@ -403,6 +449,20 @@ export default function Studio() {
                 Mobile
               </span>
             </Button>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* BOTÃO DE PUBLICAR (ACIONA O MODAL) */}
+            {siteData && (
+              <Button 
+                size="sm" 
+                onClick={() => setIsPublishModalOpen(true)}
+                className="h-9 gap-2 shadow-md shadow-primary/20 hover:shadow-lg transition-all"
+              >
+                <Rocket className="h-4 w-4" />
+                <span className="text-sm">Publicar</span>
+              </Button>
+            )}
           </div>
         </header>
 
@@ -425,8 +485,9 @@ export default function Studio() {
                     viewMode === "mobile" ? "800px" : "calc(100vh - 120px)",
                 }}
               >
-                <div className="w-full h-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-200">
+                <div className="w-full h-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-200 relative">
                   <SiteRenderer data={siteData} viewMode={viewMode} />
+                  
                   {/* Marca d'água Sutil (Glass Badge) */}
                   {!isPaid && (
                     <motion.a
@@ -502,6 +563,55 @@ export default function Studio() {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* ================= MODAL DE PUBLICAÇÃO (A Janela Flutuante) ================= */}
+      <AnimatePresence>
+        {isPublishModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" style={{zIndex: 9999}}>
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl border border-slate-200"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Globe className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800">Publicar seu Site</h2>
+                  <p className="text-xs text-slate-500">Escolha um endereço único para o seu projeto.</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center bg-slate-50 border border-slate-300 rounded-lg overflow-hidden mb-6 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                <input 
+                  type="text" 
+                  value={subdomainInput}
+                  onChange={(e) => setSubdomainInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} // Só permite letras minúsculas e traços
+                  placeholder="ex-minha-loja"
+                  className="flex-1 bg-transparent p-3 outline-none text-slate-900 font-medium text-right"
+                  autoFocus
+                />
+                <span className="bg-slate-100 p-3 text-slate-500 font-medium border-l border-slate-300 select-none">.boder.app</span>
+              </div>
+
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1" onClick={() => setIsPublishModalOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button 
+                  className="flex-1 gap-2" 
+                  onClick={handlePublishConfirm} 
+                  disabled={isPublishing || !subdomainInput.trim()}
+                >
+                  {isPublishing ? <Loader2 className="animate-spin h-4 w-4" /> : <><Rocket className="h-4 w-4" /> Publicar Agora</>}
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
