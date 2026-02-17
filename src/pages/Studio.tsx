@@ -224,10 +224,8 @@ export default function Studio() {
     }
   };
 
-  // --- NOVA FUNÇÃO: PUBLICAR SITE ---
   const handlePublishConfirm = async () => {
-    // Validações básicas
-    if (!subdomainInput || !currentSiteId) {
+    if (!subdomainInput || !siteData) {
       premiumToast.error("Erro", "Salve o site gerando algo antes de publicar.");
       return;
     }
@@ -239,14 +237,28 @@ export default function Studio() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          siteId: currentSiteId, // Usa o ID que salvamos no localStorage
+          siteId: currentSiteId, 
           subdomain: subdomainInput,
-          userId: user?.id
+          userId: user?.id,
+          content: siteData, 
+          name: siteData.hero?.headline || "Novo Site",
+          description: siteData.hero?.subheadline || ""
         })
       });
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Erro desconhecido");
+
+      // Se o backend criou um ID novo real (CUID), atualiza o estado local
+      if (data.site && data.site.id) {
+          setCurrentSiteId(data.site.id);
+          // Atualiza também no localStorage para não perder a referência
+          const savedSites = JSON.parse(localStorage.getItem("mock_sites") || "[]");
+          const updatedSites = savedSites.map((s: any) => 
+            s.id === currentSiteId ? { ...s, id: data.site.id, subdomain: subdomainInput, is_published: true } : s
+          );
+          localStorage.setItem("mock_sites", JSON.stringify(updatedSites));
+      }
 
       premiumToast.success("Site Publicado!", "Seu site já está no ar.");
       setIsPublishModalOpen(false);

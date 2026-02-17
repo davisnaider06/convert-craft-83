@@ -3,7 +3,6 @@ const prisma = new PrismaClient();
 const aiService = require('../services/aiService');
 const userService = require('../services/userService');
 
-// 1. CRIA O SITE (Gera HTML)
 const createSite = async (req, res) => {
     try {
         const { prompt, userId, userEmail } = req.body;
@@ -41,7 +40,6 @@ const createSite = async (req, res) => {
     }
 };
 
-// 2. BUSCA DADOS DO USUÁRIO
 const getUserData = async (req, res) => {
     try {
         const { userId } = req.params;
@@ -53,36 +51,69 @@ const getUserData = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-
-// 3. PUBLICA O SITE (Salva o subdomínio)
 const publishSite = async (req, res) => {
-  // ATENÇÃO: userId vem do body (conforme enviamos no frontend)
-  const { siteId, subdomain, userId } = req.body; 
+  const { siteId, subdomain, userId, content, name, description } = req.body; 
 
   try {
-    // Verifica se o subdomínio já existe (para outro site)
-    const existing = await prisma.site.findUnique({
-      where: { subdomain }
+    const existingSubdomain = await prisma.site.findUnique({
+      where: { subdomain: subdomain.toLowerCase() }
     });
 
-    if (existing && existing.id !== siteId) {
+     if (existingSubdomain && existingSubdomain.id !== siteId && !siteId.startsWith('site-')) {
       return res.status(400).json({ error: "Este subdomínio já está em uso. Escolha outro." });
     }
+    if (existingSubdomain && siteId.startsWith('site-')) {
+        return res.status(400).json({ error: "Este subdomínio já está em uso. Escolha outro." });
+    }
 
-    // Atualiza o site
-    const site = await prisma.site.update({
-      where: { id: siteId },
-      data: {
-        is_published: true,
-        subdomain: subdomain.toLowerCase(), // Sempre minúsculo
-        updated_at: new Date()
-      }
-    });
+    let site;
+
+    if (siteId.startsWith('site-')) {
+        console.log("📝 Criando novo site no banco para publicar...");
+        site = await prisma.site.create({
+            data: {
+                userId: userId,
+                name: name || "Meu Site",
+                description: description || "Landing Page",
+                content: content,
+                subdomain: subdomain.toLowerCase(),
+                is_published: true,
+                published_at: new Date()
+            }
+        });
+    } else {
+        const checkSite = await prisma.site.findUnique({ where: { id: siteId } });
+        
+        if (!checkSite) {
+             site = await prisma.site.create({
+                data: {
+                    userId: userId,
+                    name: name || "Meu Site",
+                    description: description || "",
+                    content: content,
+                    subdomain: subdomain.toLowerCase(),
+                    is_published: true,
+                    published_at: new Date()
+                }
+            });
+        } else {
+            console.log("🔄 Atualizando site existente...");
+            site = await prisma.site.update({
+                where: { id: siteId },
+                data: {
+                    is_published: true,
+                    subdomain: subdomain.toLowerCase(),
+                    content: content,
+                }
+            });
+        }
+    }
 
     res.json({ success: true, site });
+
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erro ao publicar site." });
+    console.error("❌ Erro ao publicar:", error);
+    res.status(500).json({ error: "Erro ao publicar site. Tente novamente." });
   }
 };
 
