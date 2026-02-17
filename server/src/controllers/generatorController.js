@@ -11,24 +11,26 @@ const createSite = async (req, res) => {
             return res.status(400).json({ error: "Dados incompletos (userId ou prompt)." });
         }
 
-        console.log(`⚡ Iniciando geração HTML para ${userEmail || userId}...`);
+        console.log(`⚡ Iniciando geração de site completo para ${userEmail || userId}...`);
 
         // Verifica Saldo
         const { user, custo } = await userService.verificarSaldo(userId, userEmail, prompt);
 
-        // Gera o código HTML completo
-        const codigoCompleto = await aiService.gerarSite(prompt);
+        // Gera o site completo (JSON + HTML)
+        const siteCompleto = await aiService.gerarSite(prompt);
 
         // Desconta créditos
         await userService.descontarCreditos(userId, custo, prompt, "auto-fallback");
 
-        console.log(`✅ Site HTML gerado! Créditos restantes: ${user.credits - custo}`);
+        console.log(`✅ Site completo gerado! Créditos restantes: ${user.credits - custo}`);
 
         res.json({ 
             success: true, 
             creditsSpent: custo, 
             remainingCredits: user.credits - custo,
-            code: codigoCompleto 
+            code: siteCompleto.jsonData,  // Metadados em JSON
+            html: siteCompleto.html,      // HTML completo e funcional
+            preview: siteCompleto.html    // Também deixa como preview
         });
 
     } catch (error) {

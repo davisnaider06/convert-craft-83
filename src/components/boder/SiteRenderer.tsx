@@ -3,6 +3,7 @@ import {
   Globe, BarChart, Users, Layout, MessageCircle
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useEffect, useRef } from "react";
 
 const iconMap: Record<string, any> = {
   zap: Zap,
@@ -16,8 +17,36 @@ const iconMap: Record<string, any> = {
   message: MessageCircle
 };
 
-// Adicionamos a prop viewMode aqui
-export function SiteRenderer({ data, viewMode = "desktop" }: { data: any, viewMode?: "desktop" | "mobile" }) {
+// Adicionamos a prop viewMode e html aqui
+export function SiteRenderer({ data, viewMode = "desktop", html }: { data: any, viewMode?: "desktop" | "mobile", html?: string }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  
+  // Se houver HTML completo, renderiza via iframe
+  if (html) {
+    useEffect(() => {
+      if (iframeRef.current && html) {
+        const iframeDoc = iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
+        if (iframeDoc) {
+          iframeDoc.open();
+          iframeDoc.write(html);
+          iframeDoc.close();
+        }
+      }
+    }, [html]);
+
+    return (
+      <div className="w-full h-full">
+        <iframe
+          ref={iframeRef}
+          className="w-full h-full border-0"
+          title="Site Preview"
+          sandbox="allow-same-origin allow-scripts"
+        />
+      </div>
+    );
+  }
+
+  // Fallback: Renderiza com React se não houver HTML
   if (!data || Object.keys(data).length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">

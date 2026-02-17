@@ -201,7 +201,7 @@ export default function Preview() {
 
         <motion.div className={`bg-white rounded-xl overflow-hidden shadow-2xl relative ${viewMode === "mobile" ? "w-[375px]" : "w-full max-w-6xl"}`} style={{ height: "calc(100vh - 120px)" }}>
            <div className="w-full h-full overflow-y-auto">
-              <SiteRenderer data={site.content} viewMode={viewMode} />
+              <SiteRenderer data={site.content} viewMode={viewMode} html={site.html} />
               {!isPaid && site.has_watermark && (
                  <div className="absolute bottom-4 right-4 bg-white/80 px-3 py-1 rounded-full text-xs font-bold backdrop-blur">Criado com Boder AI</div>
               )}

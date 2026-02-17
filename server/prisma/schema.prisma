@@ -36,9 +36,10 @@ model Site {
   user          User     @relation(fields: [userId], references: [id])
   name          String?
   description   String?
-  content       Json?
+  content       Json?           // Metadados JSON do site
+  html_content  String?         // HTML completo do site
   is_published  Boolean  @default(false)
-  subdomain     String?  @unique  // <--- IMPORTANTE: @unique aqui
+  subdomain     String?  @unique  
   custom_domain String?
   published_at  DateTime?
   created_at    DateTime @default(now())

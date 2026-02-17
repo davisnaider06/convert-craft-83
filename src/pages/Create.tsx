@@ -184,6 +184,7 @@ export default function Create() {
 
       // IMPORTANTE: Agora codigoGerado é um objeto JSON, não HTML!
       const conteudoJson = resultBackend.code;
+      const codigoHtml = resultBackend.html; // Novo: pega o HTML completo
 
       const fakeId = `site-${Date.now()}`;
       
@@ -196,6 +197,7 @@ export default function Create() {
         objetivo: data.template.category,
         estilo: data.template.style,
         content: conteudoJson, // <- SALVA O JSON AQUI EM 'content' em vez de 'html_content'
+        html: codigoHtml,      // <- NOVO: Salva o HTML completo também
         has_watermark: true,
         created_at: new Date().toISOString(),
         is_published: false
