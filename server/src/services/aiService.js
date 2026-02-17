@@ -53,16 +53,17 @@ Você DEVE retornar EXATAMENTE um JSON válido com a seguinte estrutura. NÃO ad
 `;
 
 async function gerarDados(prompt) {
-    // Cascata de Modelos: Do mais moderno ao mais conservador
+    // LISTA DE MODELOS CORRIGIDA (Estes são os nomes estáveis)
     const geminiModels = [
-        "gemini-2.0-flash",
-        "gemini-1.5-pro-latest",
-        "gemini-1.5-flash-latest",
-        "gemini-pro"
+        "gemini-1.5-flash", // Mais rápido e estável atualmente
+        "gemini-1.5-pro",   // Mais inteligente
+        "gemini-2.0-flash", // Experimental (pode dar erro de quota, por isso deixei por último ou em teste)
+        "gemini-1.0-pro"    // Fallback antigo
     ];
 
     let dadosJson = null;
 
+    // TENTATIVA COM GEMINI (GOOGLE)
     for (const modelName of geminiModels) {
         try {
             console.log(`🤖 Tentando Gemini com o modelo: ${modelName}...`);
@@ -71,20 +72,29 @@ async function gerarDados(prompt) {
                 generationConfig: { responseMimeType: "application/json" } 
             });
             
-            const result = await model.generateContent(`${SYSTEM_PROMPT}\n\nINSTRUÇÕES DO USUÁRIO:\n${prompt}`);
+            // Timeout de segurança de 25s
+            const resultPromise = model.generateContent(`${SYSTEM_PROMPT}\n\nINSTRUÇÕES DO USUÁRIO:\n${prompt}`);
+            const result = await Promise.race([
+                resultPromise,
+                new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 25000))
+            ]);
+
             const text = result.response.text();
             
+            // Tenta parsear para garantir que é JSON válido
             dadosJson = JSON.parse(text);
             console.log(`✅ Sucesso com ${modelName}!`);
-            break; 
+            break; // Se deu certo, para o loop
             
         } catch (e) {
             console.warn(`⚠️ Falha no ${modelName}: ${e.message.split('\n')[0]}`);
+            // Continua para o próximo modelo...
         }
     }
 
     if (dadosJson) return dadosJson;
 
+    // TENTATIVA DE EMERGÊNCIA COM GROQ (Llama)
     console.warn("🚨 Todos os modelos Gemini falharam. Tentando Groq de emergência...");
     if (groq) {
         try {
@@ -105,7 +115,7 @@ async function gerarDados(prompt) {
         }
     }
     
-    throw new Error("As IAs falharam em estruturar o conteúdo do site.");
+    throw new Error("O sistema de IA está sobrecarregado. Por favor, tente novamente em alguns instantes.");
 }
 
 async function gerarSite(prompt) {
