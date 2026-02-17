@@ -39,7 +39,9 @@ export default function Studio() {
   const navigate = useNavigate();
   const location = useLocation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const hasAutoSentInitialPrompt = useRef(false);
+  
+  // Controle para evitar chamadas duplas e loops
+  const hasFetchedInitial = useRef(false);
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -61,7 +63,7 @@ export default function Studio() {
   const [subdomainInput, setSubdomainInput] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
 
-  // Busca os créditos iniciais
+  // 1. Busca os créditos iniciais
   useEffect(() => {
     async function fetchCredits() {
       if (isSignedIn && user) {
@@ -81,10 +83,54 @@ export default function Studio() {
     fetchCredits();
   }, [isSignedIn, user]);
 
-  // Rola o chat para baixo sempre que houver nova mensagem
+  // 2. Rola o chat para baixo
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isGenerating]);
+
+  // 3. LÓGICA INTELIGENTE DE INICIALIZAÇÃO (Rascunho vs Novo)
+  useEffect(() => {
+    if (!isSignedIn) return;
+
+    // A. Verifica se tem um rascunho salvo no navegador (Recuperação de F5)
+    // Mas SÓ recupera se não tivermos passado um ID específico para carregar (modo edição do dashboard)
+    const loadSiteId = location.state?.loadSiteId;
+    
+    if (loadSiteId) {
+        // Modo Edição: Carregar do LocalStorage "banco de dados fake"
+        const storedSites = JSON.parse(localStorage.getItem("mock_sites") || "[]");
+        const foundSite = storedSites.find((s: any) => s.id === loadSiteId);
+        if (foundSite) {
+            setSiteData(foundSite.content);
+            setCurrentSiteId(foundSite.id);
+            if (foundSite.subdomain) setSubdomainInput(foundSite.subdomain);
+            setMessages(prev => [...prev, { id: "loaded", role: "ai", content: `Carreguei o site "${foundSite.name}". O que deseja ajustar?` }]);
+        }
+        return;
+    }
+
+    const savedDraft = sessionStorage.getItem("current_draft_site");
+    if (savedDraft) {
+        console.log("📂 Recuperando rascunho do cache (sem gastar créditos)...");
+        const parsedDraft = JSON.parse(savedDraft);
+        setSiteData(parsedDraft);
+        // Recupera também o ID se tiver
+        const savedId = sessionStorage.getItem("current_draft_id");
+        if (savedId) setCurrentSiteId(savedId);
+        return; // PARA AQUI! Não chama a IA.
+    }
+
+    // B. Se não tem rascunho, verifica se tem prompt vindo do /create
+    const navState = location.state as { initialPrompt?: string } | null;
+    const promptFromCreate = navState?.initialPrompt?.trim();
+
+    if (promptFromCreate && !hasFetchedInitial.current) {
+        hasFetchedInitial.current = true;
+        setInputValue(promptFromCreate);
+        // Chama a função de gerar (dispara o chat)
+        void handleSendMessage(promptFromCreate);
+    }
+  }, [isSignedIn, location.state]);
 
   // --- FUNÇÃO DE ENVIO DE MENSAGEM (CHAT) ---
   const handleSendMessage = async (forcedText?: string) => {
@@ -155,16 +201,17 @@ export default function Studio() {
 
       const jsonGerado = resultBackend.code;
 
-      // Atualiza o Canvas na hora
+      // 1. Atualiza o Canvas na hora
       setSiteData(jsonGerado);
 
-      // ==========================================
-      // LÓGICA DE SALVAMENTO PARA O DASHBOARD
-      // ==========================================
+      // 2. SALVA NO CACHE DO NAVEGADOR (RASCUNHO)
+      sessionStorage.setItem("current_draft_site", JSON.stringify(jsonGerado));
+
+      // 3. SALVA NO LOCALSTORAGE (HISTÓRICO PERMANENTE)
       const savedSites = JSON.parse(localStorage.getItem("mock_sites") || "[]");
 
       if (!currentSiteId) {
-        // 1. É UM SITE NOVO: Cria e salva
+        // É UM SITE NOVO
         const novoId = `site-${Date.now()}`;
         const novoSite = {
           id: novoId,
@@ -182,9 +229,10 @@ export default function Studio() {
           "mock_sites",
           JSON.stringify([novoSite, ...savedSites]),
         );
-        setCurrentSiteId(novoId); // Guarda o ID para as próximas edições
+        setCurrentSiteId(novoId); 
+        sessionStorage.setItem("current_draft_id", novoId); // Salva ID no cache também
       } else {
-        // 2. É UMA EDIÇÃO: Encontra o site atual e atualiza o conteúdo
+        // É UMA EDIÇÃO
         const updatedSites = savedSites.map((s: any) =>
           s.id === currentSiteId
             ? {
@@ -196,12 +244,11 @@ export default function Studio() {
         );
         localStorage.setItem("mock_sites", JSON.stringify(updatedSites));
       }
-      // ==========================================
 
       // Adiciona a resposta da IA ao chat
       const aiResponseText = siteData
         ? "Feito! Apliquei os ajustes que pediu. O que acha agora?"
-        : "Incrível! Criei a primeira versão do seu site com base na sua ideia. Pode pedir para eu alterar cores, textos ou seções!";
+        : "Incrível! Criei a primeira versão do seu site. Pode pedir para eu alterar cores, textos ou seções!";
 
       setMessages((prev) => [
         ...prev,
@@ -226,7 +273,7 @@ export default function Studio() {
 
   const handlePublishConfirm = async () => {
     if (!subdomainInput || !siteData) {
-      premiumToast.error("Erro", "Salve o site gerando algo antes de publicar.");
+      premiumToast.error("Erro", "Gere um site antes de publicar.");
       return;
     }
     
@@ -249,10 +296,8 @@ export default function Studio() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Erro desconhecido");
 
-      // Se o backend criou um ID novo real (CUID), atualiza o estado local
       if (data.site && data.site.id) {
           setCurrentSiteId(data.site.id);
-          // Atualiza também no localStorage para não perder a referência
           const savedSites = JSON.parse(localStorage.getItem("mock_sites") || "[]");
           const updatedSites = savedSites.map((s: any) => 
             s.id === currentSiteId ? { ...s, id: data.site.id, subdomain: subdomainInput, is_published: true } : s
@@ -263,8 +308,10 @@ export default function Studio() {
       premiumToast.success("Site Publicado!", "Seu site já está no ar.");
       setIsPublishModalOpen(false);
       
-      // Abre o site novo em outra aba para o cliente ver
-      window.open(`http://${subdomainInput}.boder.app`, '_blank');
+      // Limpa o rascunho pois já foi publicado (opcional, mas bom pra fluxo limpo)
+      // sessionStorage.removeItem("current_draft_site");
+      
+      window.open(`https://${subdomainInput}.boder.app`, '_blank');
 
     } catch (error: any) {
       console.error(error);
@@ -273,18 +320,6 @@ export default function Studio() {
       setIsPublishing(false);
     }
   };
-
-  // Efeitos iniciais e atalhos
-  useEffect(() => {
-    const navState = location.state as { initialPrompt?: string } | null;
-    const promptFromCreate = navState?.initialPrompt?.trim();
-
-    if (!promptFromCreate || hasAutoSentInitialPrompt.current || !isSignedIn) return;
-
-    hasAutoSentInitialPrompt.current = true;
-    setInputValue(promptFromCreate);
-    void handleSendMessage(promptFromCreate);
-  }, [location.state, isSignedIn]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -500,7 +535,7 @@ export default function Studio() {
                 <div className="w-full h-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-200 relative">
                   <SiteRenderer data={siteData} viewMode={viewMode} />
                   
-                  {/* Marca d'água Sutil (Glass Badge) */}
+                  {/* Marca d'água Sutil */}
                   {!isPaid && (
                     <motion.a
                       href="https://boder.app"
@@ -576,7 +611,7 @@ export default function Studio() {
         </div>
       </main>
 
-      {/* ================= MODAL DE PUBLICAÇÃO (A Janela Flutuante) ================= */}
+      {/* ================= MODAL DE PUBLICAÇÃO ================= */}
       <AnimatePresence>
         {isPublishModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" style={{zIndex: 9999}}>
@@ -600,7 +635,7 @@ export default function Studio() {
                 <input 
                   type="text" 
                   value={subdomainInput}
-                  onChange={(e) => setSubdomainInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} // Só permite letras minúsculas e traços
+                  onChange={(e) => setSubdomainInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} 
                   placeholder="ex-minha-loja"
                   className="flex-1 bg-transparent p-3 outline-none text-slate-900 font-medium text-right"
                   autoFocus
