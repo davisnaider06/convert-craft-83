@@ -13,6 +13,8 @@ model User {
   credits   Int      @default(15) // Começa com 15
   planType  String   @default("free") // free, pro, enterprise
   createdAt DateTime @default(now())
+
+  Sites     Site[]
   
   generations GenerationLog[]
 }
