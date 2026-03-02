@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -29,9 +29,7 @@ import TypingText from "@/components/ui/TypingText";
 import { DeleteConfirmModal } from "@/components/boder/DeleteConfirmModal";
 import { ShinyButton } from "@/components/ui/ShinyButton";
 import { SiteCardSkeletonGrid } from "@/components/boder/SiteCardSkeleton";
-
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { readApiResponse, useApiClient } from "@/lib/apiClient";
 
 
 // Interface mantida para compatibilidade
@@ -53,6 +51,7 @@ interface GeneratedSite {
 export default function Dashboard() {
   const { user, isSignedIn } = useUser();
   const { signOut } = useClerk();
+  const { apiFetch } = useApiClient();
   
   const { play, enabled: soundEnabled, toggle: toggleSound } = useSounds();
   const navigate = useNavigate();
@@ -75,12 +74,12 @@ export default function Dashboard() {
     async function fetchCredits() {
       if (isSignedIn && user) {
         try {
-          const res = await fetch(`${API_URL}/api/user/${user.id}?email=${user.primaryEmailAddress?.emailAddress}`);
+          const res = await apiFetch(`/api/user/${user.id}?email=${user.primaryEmailAddress?.emailAddress}`);
           if (!res.ok) throw new Error("Falha ao conectar no servidor");
           const data = await res.json();
           setCredits(data.credits);
         } catch (error) {
-          console.error("Erro ao buscar créditos:", error);
+          console.warn("Erro ao buscar créditos:", error);
           setCredits("?"); 
         }
       }
@@ -99,18 +98,13 @@ export default function Dashboard() {
   }, [isSignedIn, navigate]);
 
   const fetchSites = async () => {
-    // Carrega os sites do localStorage
     try {
-      await new Promise(r => setTimeout(r, 800)); // Delay para animação de loading
-      const storedSites = JSON.parse(localStorage.getItem("mock_sites") || "[]");
-      // Filtra apenas sites deste usuário (opcional, se quiser separar por conta)
-      const userSites = storedSites.filter((s: any) => s.user_id === user?.id);
-      
-      // Fallback pra mostrar tudo se não tiver ID salvo antes ou se a lista filtrada estiver vazia (opcional)
-      // Se quiser ser estrito, use setSites(userSites);
-      setSites(userSites.length > 0 ? userSites : storedSites); 
+      const response = await apiFetch("/api/sites");
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao carregar sites");
+      setSites(parsed.data?.sites || []);
     } catch (error) {
-      console.error("Erro ao carregar sites:", error);
+      console.warn("Erro ao carregar sites:", error);
       setSites([]);
     } finally {
       setIsLoading(false);
@@ -140,20 +134,16 @@ export default function Dashboard() {
     
     setDeleteModal(prev => ({ ...prev, isDeleting: true }));
     
-    // Remove do localStorage
     try {
-      const storedSites = JSON.parse(localStorage.getItem("mock_sites") || "[]");
-      const updatedSites = storedSites.filter((s: any) => s.id !== deleteModal.site!.id);
-      localStorage.setItem("mock_sites", JSON.stringify(updatedSites));
-      
-      // Atualiza a lista local
-      setTimeout(() => {
-        setSites(updatedSites); // Se usar filtro por usuário, filtrar aqui também
-        premiumToast.success("Site excluído", "O site foi removido com sucesso.");
-        closeDeleteModal();
-      }, 800);
+      const response = await apiFetch(`/api/sites/${deleteModal.site.id}`, { method: "DELETE" });
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao excluir site");
+
+      setSites((prev) => prev.filter((s) => s.id !== deleteModal.site!.id));
+      premiumToast.success("Site excluído", "O site foi removido com sucesso.");
+      closeDeleteModal();
     } catch (error) {
-      console.error("Erro ao excluir site:", error);
+      console.warn("Erro ao excluir site:", error);
       premiumToast.error("Erro ao excluir site", "Tente novamente.");
       setDeleteModal(prev => ({ ...prev, isDeleting: false }));
     }
@@ -473,7 +463,7 @@ export default function Dashboard() {
                               variant="ghost"
                               size="icon"
                               className="rounded-full"
-                              onClick={() => window.open(`http://${site.subdomain}.localhost:3000`, "_blank")}
+                              onClick={() => window.open(`https://${site.subdomain}.boder.app`, "_blank")}
                             >
                               <ExternalLink className="h-4 w-4" />
                             </Button>

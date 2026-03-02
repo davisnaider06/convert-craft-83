@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { AnimatedBackground } from "@/components/boder/AnimatedBackground";
 import { ThemeToggle } from "@/components/boder/ThemeToggle";
 import { ConfettiCelebration } from "@/components/boder/ConfettiCelebration";
-import { useUser } from "@clerk/clerk-react"; 
+import { useAuth } from "@clerk/clerk-react";
 
 import { premiumToast } from "@/components/ui/premium-toast";
 import { SiteRenderer } from "@/components/boder/SiteRenderer"; 
@@ -22,8 +22,7 @@ import {
   History,
 } from "lucide-react";
 import boderLogo from "@/assets/boder-logo.png";
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { useApiClient } from "@/lib/apiClient";
 
 interface SiteData {
   id: string;
@@ -44,7 +43,8 @@ type ViewMode = "desktop" | "mobile";
 export default function Preview() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useUser(); 
+  const { userId } = useAuth();
+  const { apiFetch } = useApiClient();
 
   const [site, setSite] = useState<SiteData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,8 +66,10 @@ export default function Preview() {
   const loadSite = async () => {
     if (!id) return;
     try {
-      const storedSites = JSON.parse(localStorage.getItem("mock_sites") || "[]");
-      const foundSite = storedSites.find((s: any) => s.id === id);
+      const response = await apiFetch(`/api/sites/${id}`);
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Site não encontrado");
+      const foundSite = payload.site;
 
       if (foundSite) {
         setSite(foundSite);
@@ -106,13 +108,12 @@ export default function Preview() {
     setPublishing(true);
     
     try {
-      const response = await fetch(`${API_URL}/api/sites/publish`, {
+      const response = await apiFetch(`/api/sites/publish`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           siteId: site.id,
           subdomain: subdomainInput,
-          userId: user?.id,
+          userId: userId || undefined,
           content: site.content,
           name: site.name,
           description: site.description
@@ -122,11 +123,6 @@ export default function Preview() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Erro ao publicar");
 
-      const storedSites = JSON.parse(localStorage.getItem("mock_sites") || "[]");
-      const updatedSites = storedSites.map((s: any) => 
-        s.id === site.id ? { ...s, is_published: true, subdomain: subdomainInput, published_at: new Date().toISOString() } : s
-      );
-      localStorage.setItem("mock_sites", JSON.stringify(updatedSites));
       setSite({ ...site, is_published: true, subdomain: subdomainInput });
 
       setPublishResult({ publicUrl: `${subdomainInput}.boder.app` });
@@ -134,7 +130,6 @@ export default function Preview() {
       premiumToast.success("Site publicado com sucesso!");
       
     } catch (err: any) {
-      console.error("Publish error:", err);
       premiumToast.error("Erro ao publicar", err.message);
     } finally {
       setPublishing(false);

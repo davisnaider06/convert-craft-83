@@ -23,6 +23,8 @@ import Pricing from "./pages/Pricing";
 import Credits from "./pages/Credits";
 import Profile from "./pages/Profile";
 import Studio from "./pages/Studio";
+import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 
 // Admin
 import Admin from "./pages/Admin";
@@ -140,8 +142,8 @@ const App = () => {
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               
-              <Route path="/auth" element={<Navigate to="/create" replace />} /> 
-              <Route path="/reset-password" element={<Navigate to="/create" replace />} />
+              <Route path="/auth" element={<Auth />} /> 
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* ==================== ROTAS PRIVADAS ==================== */}
               <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />

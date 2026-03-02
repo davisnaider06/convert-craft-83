@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const apiRoutes = require('./src/routes/api');
+const { requireAuth } = require("./src/middlewares/auth");
 
 const generatorController = require("./src/controllers/generatorController");
 
@@ -14,7 +15,7 @@ app.use(express.json());
 app.use('/api', apiRoutes);
 
 // Rota para publicar (Protegida/Privada)
-app.post("/api/sites/publish", generatorController.publishSite);
+app.post("/api/sites/publish", requireAuth, generatorController.publishSite);
 
 // Rota pública (Para quem acessa o subdomínio)
 app.get("/api/public/site/:subdomain", generatorController.getPublicSite);

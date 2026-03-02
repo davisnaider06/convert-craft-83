@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
 import { SignIn, SignUp, useUser } from "@clerk/clerk-react"; // USAR ISSO
-import { dark } from "@clerk/themes"; // Opcional: para ficar dark mode se tiver instalado
 import { AnimatedBackground } from "@/components/boder/AnimatedBackground";
 import { ArrowLeft } from "lucide-react";
 import { premiumToast } from "@/components/ui/premium-toast";
@@ -87,7 +86,6 @@ export default function Auth() {
                 {mode === "login" ? (
                   <SignIn 
                     appearance={{
-                        baseTheme: dark, // Remova essa linha se não tiver @clerk/themes
                         elements: {
                             card: "bg-card/80 backdrop-blur-sm border border-border shadow-xl",
                             headerTitle: "text-foreground",
@@ -108,7 +106,6 @@ export default function Auth() {
                 ) : (
                   <SignUp 
                     appearance={{
-                        baseTheme: dark, // Remova essa linha se não tiver @clerk/themes
                         elements: {
                             card: "bg-card/80 backdrop-blur-sm border border-border shadow-xl",
                             headerTitle: "text-foreground",
@@ -157,3 +154,5 @@ export default function Auth() {
     </div>
   );
 }
+
+

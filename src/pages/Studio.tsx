@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useUser, useClerk } from "@clerk/clerk-react";
@@ -21,9 +21,9 @@ import {
   Code2,
   LayoutTemplate,
 } from "lucide-react";
+import { readApiResponse, useApiClient } from "@/lib/apiClient";
 
 const isPaid = false;
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 interface Message {
   id: string;
@@ -33,12 +33,71 @@ interface Message {
 
 type ViewMode = "desktop" | "mobile";
 
+interface GenerationContext {
+  templateName?: string;
+  templateCategory?: string;
+  templateStyle?: string;
+  templatePrompt?: string;
+  userPrompt?: string;
+  customizations?: string;
+  mustHave?: string[];
+}
+
+const KNOWN_SECTION_KEYS: Record<string, string> = {
+  navbar: "navbar",
+  hero: "hero",
+  featureGrid: "feature-grid",
+  feature_grid: "feature-grid",
+  testimonialSlider: "testimonial-slider",
+  testimonial_slider: "testimonial-slider",
+  pricingTable: "pricing-table",
+  pricing_table: "pricing-table",
+  faqSection: "faq-section",
+  faq_section: "faq-section",
+  ctaSection: "cta-section",
+  cta_section: "cta-section",
+  productCatalog: "product-catalog",
+  product_catalog: "product-catalog",
+  profileHeader: "profile-header",
+  profile_header: "profile-header",
+  linkButtons: "link-buttons",
+  link_buttons: "link-buttons",
+  projectGallery: "project-gallery",
+  project_gallery: "project-gallery",
+  socialProof: "social-proof",
+  social_proof: "social-proof",
+  footerSection: "footer-section",
+  footer_section: "footer-section",
+};
+
+function normalizeGeneratedSite(raw: any) {
+  if (!raw || typeof raw !== "object") return null;
+
+  if (Array.isArray(raw.sections)) return raw;
+  if (raw.content && Array.isArray(raw.content.sections)) return raw.content;
+
+  const sections = Object.entries(KNOWN_SECTION_KEYS)
+    .filter(([key]) => raw[key] && typeof raw[key] === "object")
+    .map(([key, type]) => ({ type, ...(raw[key] as Record<string, unknown>) }));
+
+  if (sections.length > 0) {
+    return {
+      colors: raw.colors || { primary: "#3b82f6", secondary: "#0f172a", accent: "#14b8a6" },
+      sections,
+    };
+  }
+
+  return null;
+}
+
 export default function Studio() {
   const { user, isSignedIn } = useUser();
   const { openSignIn } = useClerk();
+  const { apiFetch } = useApiClient();
   const navigate = useNavigate();
   const location = useLocation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const generationContextRef = useRef<GenerationContext | null>(null);
   
   // Controle para evitar chamadas duplas e loops
   const hasFetchedInitial = useRef(false);
@@ -63,20 +122,28 @@ export default function Studio() {
   const [subdomainInput, setSubdomainInput] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
 
+  const extractMustHave = (userPrompt: string, customizations?: string) => {
+    const raw = `${userPrompt}\n${customizations || ""}`
+      .split(/\n|;|,|\. /)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 8);
+    return Array.from(new Set(raw)).slice(0, 12);
+  };
+
   // 1. Busca os créditos iniciais
   useEffect(() => {
     async function fetchCredits() {
       if (isSignedIn && user) {
         try {
-          const res = await fetch(
-            `${API_URL}/api/user/${user.id}?email=${user.primaryEmailAddress?.emailAddress}`,
+          const res = await apiFetch(
+            `/api/user/${user.id}?email=${user.primaryEmailAddress?.emailAddress}`,
           );
           if (res.ok) {
             const data = await res.json();
             setCredits(data.credits);
           }
         } catch (error) {
-          console.error("Erro ao buscar créditos:", error);
+          console.warn("Erro ao buscar créditos:", error);
         }
       }
     }
@@ -88,188 +155,155 @@ export default function Studio() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isGenerating]);
 
-  // 3. LÓGICA INTELIGENTE DE INICIALIZAÇÃO (Rascunho vs Novo)
-  useEffect(() => {
-    if (!isSignedIn) return;
+ 
 
-    // A. Verifica se tem um rascunho salvo no navegador (Recuperação de F5)
-    // Mas SÓ recupera se não tivermos passado um ID específico para carregar (modo edição do dashboard)
-    const loadSiteId = location.state?.loadSiteId;
-    
-    if (loadSiteId) {
-        // Modo Edição: Carregar do LocalStorage "banco de dados fake"
-        const storedSites = JSON.parse(localStorage.getItem("mock_sites") || "[]");
-        const foundSite = storedSites.find((s: any) => s.id === loadSiteId);
-        if (foundSite) {
-            setSiteData(foundSite.content);
-            setCurrentSiteId(foundSite.id);
-            if (foundSite.subdomain) setSubdomainInput(foundSite.subdomain);
-            setMessages(prev => [...prev, { id: "loaded", role: "ai", content: `Carreguei o site "${foundSite.name}". O que deseja ajustar?` }]);
+useEffect(() => {
+  if (!isSignedIn) return;
+
+  const navState = location.state as { 
+    loadSiteId?: string; 
+    initialPrompt?: string; 
+    templateId?: string;
+    templateName?: string;
+    templateCategory?: string;
+    templateStyle?: string;
+    templateBasePrompt?: string;
+    customizations?: string;
+  } | null;
+
+  // 1. Carregar site existente do Dashboard
+  if (navState?.loadSiteId && !hasFetchedInitial.current) {
+      hasFetchedInitial.current = true;
+      void (async () => {
+        try {
+          const response = await apiFetch(`/api/sites/${navState.loadSiteId}`);
+          const parsed = await readApiResponse(response);
+          if (!parsed.ok) throw new Error(parsed.error || "Falha ao carregar site");
+
+          const foundSite = parsed.data.site;
+          setSiteData(foundSite.content);
+          setCurrentSiteId(foundSite.id);
+          setMessages([{ id: "loaded", role: "ai", content: `Site "${foundSite.name}" carregado. O que vamos ajustar?` }]);
+        } catch (error) {
+          premiumToast.error("Erro", "Não foi possível carregar o site selecionado.");
+          navigate("/dashboard");
         }
-        return;
-    }
-
-    const savedDraft = sessionStorage.getItem("current_draft_site");
-    if (savedDraft) {
-        console.log("📂 Recuperando rascunho do cache (sem gastar créditos)...");
-        const parsedDraft = JSON.parse(savedDraft);
-        setSiteData(parsedDraft);
-        // Recupera também o ID se tiver
-        const savedId = sessionStorage.getItem("current_draft_id");
-        if (savedId) setCurrentSiteId(savedId);
-        return; // PARA AQUI! Não chama a IA.
-    }
-
-    // B. Se não tem rascunho, verifica se tem prompt vindo do /create
-    const navState = location.state as { initialPrompt?: string } | null;
-    const promptFromCreate = navState?.initialPrompt?.trim();
-
-    if (promptFromCreate && !hasFetchedInitial.current) {
-        hasFetchedInitial.current = true;
-        setInputValue(promptFromCreate);
-        // Chama a função de gerar (dispara o chat)
-        void handleSendMessage(promptFromCreate);
-    }
-  }, [isSignedIn, location.state]);
-
-  // --- FUNÇÃO DE ENVIO DE MENSAGEM (CHAT) ---
-  const handleSendMessage = async (forcedText?: string) => {
-    const textToSend = (forcedText ?? inputValue).trim();
-    if (!textToSend) return;
-
-    if (!isSignedIn) {
-      openSignIn();
+      })();
       return;
-    }
+  }
 
-    const userText = textToSend;
-    setInputValue("");
+  // 2. Recuperar de F5
+  const savedDraft = sessionStorage.getItem("current_draft_site");
+  if (savedDraft && !siteData) {
+      setSiteData(JSON.parse(savedDraft));
+      const savedId = sessionStorage.getItem("current_draft_id");
+      if (savedId) setCurrentSiteId(savedId);
+      return;
+  }
 
-    // Adiciona a mensagem do utilizador ao chat
-    const newUserMsg: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: userText,
-    };
-    setMessages((prev) => [...prev, newUserMsg]);
-    setIsGenerating(true);
+  // 3. NOVO FLUXO: Criar com Template
+  if (navState?.initialPrompt && !hasFetchedInitial.current) {
+      hasFetchedInitial.current = true;
+      
+      const generationContext: GenerationContext = {
+        templateName: navState.templateName,
+        templateCategory: navState.templateCategory,
+        templateStyle: navState.templateStyle,
+        templatePrompt: navState.templateBasePrompt,
+        userPrompt: navState.initialPrompt,
+        customizations: navState.customizations || "",
+        mustHave: extractMustHave(navState.initialPrompt, navState.customizations),
+      };
+      generationContextRef.current = generationContext;
 
-    try {
-      // Lógica Inteligente: Se já existe um site, pede para AJUSTAR. Se não, pede para CRIAR.
-      let promptParaBackend = "";
-      if (siteData) {
-        // PROMPT DE EDIÇÃO
-        promptParaBackend = `
-          O usuário quer fazer uma ALTERAÇÃO no site atual.
-          PEDIDO DO USUÁRIO: "${userText}"
-          
-          AQUI ESTÁ O JSON ATUAL DO SITE:
-          ${JSON.stringify(siteData)}
-          
-          TAREFA: Retorne o JSON completo atualizado. Mantenha TODA a estrutura e textos exatamente iguais, alterando APENAS os campos necessários para atender ao pedido do usuário. 
-          IMPORTANTE: Se ele pedir para mudar a cor, altere os códigos HEX dentro do objeto 'colors'.
-        `;
-      } else {
-        // PROMPT DE CRIAÇÃO
-        promptParaBackend = `
-          Aja como Copywriter e Web Designer. Crie a estrutura e o texto (JSON) para um site do zero com esta descrição:
-          "${userText}"
-        `;
-      }
-
-      const response = await fetch(`${API_URL}/api/generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: promptParaBackend,
-          userId: user?.id,
-          userEmail: user?.primaryEmailAddress?.emailAddress,
-        }),
+      setInputValue(""); // Limpa o input visual
+      void handleSendMessage(navState.initialPrompt, {
+        templateId: navState.templateId,
+        generationContext,
       });
+  }
+}, [isSignedIn, location.state]);
+ const handleSendMessage = async (
+  forcedText?: string,
+  options?: { templateId?: string; generationContext?: GenerationContext }
+ ) => {
+  const textToSend = (forcedText ?? inputValue).trim();
+  if (!textToSend || isGenerating) return;
 
-      const resultBackend = await response.json();
+  if (!isSignedIn) { openSignIn(); return; }
 
-      if (!response.ok) {
-        throw new Error(
-          resultBackend.error || "Erro ao conectar com o servidor.",
-        );
-      }
-
-      if (resultBackend.remainingCredits !== undefined) {
-        setCredits(resultBackend.remainingCredits);
-      }
-
-      const jsonGerado = resultBackend.code;
-
-      // 1. Atualiza o Canvas na hora
-      setSiteData(jsonGerado);
-
-      // 2. SALVA NO CACHE DO NAVEGADOR (RASCUNHO)
-      sessionStorage.setItem("current_draft_site", JSON.stringify(jsonGerado));
-
-      // 3. SALVA NO LOCALSTORAGE (HISTÓRICO PERMANENTE)
-      const savedSites = JSON.parse(localStorage.getItem("mock_sites") || "[]");
-
-      if (!currentSiteId) {
-        // É UM SITE NOVO
-        const novoId = `site-${Date.now()}`;
-        const novoSite = {
-          id: novoId,
-          user_id: user?.id,
-          name: jsonGerado.hero?.headline || "Novo Site Gerado",
-          description: jsonGerado.hero?.subheadline || userText,
-          content: jsonGerado,
-          has_watermark: true,
-          created_at: new Date().toISOString(),
-          is_published: false,
-          nicho: "landing",
-          estilo: "moderno",
-        };
-        localStorage.setItem(
-          "mock_sites",
-          JSON.stringify([novoSite, ...savedSites]),
-        );
-        setCurrentSiteId(novoId); 
-        sessionStorage.setItem("current_draft_id", novoId); // Salva ID no cache também
-      } else {
-        // É UMA EDIÇÃO
-        const updatedSites = savedSites.map((s: any) =>
-          s.id === currentSiteId
-            ? {
-                ...s,
-                content: jsonGerado,
-                name: jsonGerado.hero?.headline || s.name,
-              }
-            : s,
-        );
-        localStorage.setItem("mock_sites", JSON.stringify(updatedSites));
-      }
-
-      // Adiciona a resposta da IA ao chat
-      const aiResponseText = siteData
-        ? "Feito! Apliquei os ajustes que pediu. O que acha agora?"
-        : "Incrível! Criei a primeira versão do seu site. Pode pedir para eu alterar cores, textos ou seções!";
-
-      setMessages((prev) => [
-        ...prev,
-        { id: Date.now().toString(), role: "ai", content: aiResponseText },
-      ]);
-    } catch (err: any) {
-      console.error(err);
-      premiumToast.error("Erro na geração", err.message);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          role: "ai",
-          content:
-            "Desculpe, encontrei um erro ao processar o seu pedido. Pode tentar novamente?",
-        },
-      ]);
-    } finally {
-      setIsGenerating(false);
-    }
+  // Adiciona ao chat (limpando o prompt técnico para o usuário não ver a tripa de texto)
+  const newUserMsg: Message = {
+    id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    role: "user",
+    content: forcedText ? "Gerando site com base nas minhas preferências..." : textToSend,
   };
+  
+  setMessages((prev) => [...prev, newUserMsg]);
+  setIsGenerating(true);
+  setInputValue("");
+
+  try {
+    const response = await apiFetch(`/api/generate`, {
+      method: "POST",
+      body: JSON.stringify({
+        prompt: textToSend,
+        userId: user?.id,
+        userEmail: user?.primaryEmailAddress?.emailAddress,
+        templateId: options?.templateId || null,
+        generationContext: options?.generationContext || {
+          ...(generationContextRef.current || {}),
+          userPrompt: textToSend,
+          mustHave: extractMustHave(
+            textToSend,
+            generationContextRef.current?.customizations || "",
+          ),
+        },
+      }),
+    });
+
+    const parsedGenerate = await readApiResponse(response);
+    if (!parsedGenerate.ok) throw new Error(parsedGenerate.error || "Falha ao gerar site");
+    const resultBackend = parsedGenerate.data;
+
+    if (resultBackend.remainingCredits !== undefined) setCredits(resultBackend.remainingCredits);
+
+    const normalizedSite = normalizeGeneratedSite(resultBackend.code);
+    if (!normalizedSite) {
+      throw new Error("A IA retornou um formato invÃ¡lido. Tente gerar novamente.");
+    }
+    setSiteData(normalizedSite);
+
+    // Salva caches
+    sessionStorage.setItem("current_draft_site", JSON.stringify(normalizedSite));
+    const heroHeadline = normalizedSite.sections.find((s: any) => s.type === "hero")?.headline || "Novo Site";
+    const heroSubheadline = normalizedSite.sections.find((s: any) => s.type === "hero")?.subheadline || textToSend;
+    const draftResponse = await apiFetch("/api/sites/draft", {
+      method: "POST",
+      body: JSON.stringify({
+        siteId: currentSiteId || null,
+        content: normalizedSite,
+        name: heroHeadline,
+        description: heroSubheadline,
+      }),
+    });
+    const parsedDraft = await readApiResponse(draftResponse);
+    if (!parsedDraft.ok) throw new Error(parsedDraft.error || "Falha ao salvar rascunho");
+    const draftPayload = parsedDraft.data;
+    setCurrentSiteId(draftPayload.site.id);
+    sessionStorage.setItem("current_draft_id", draftPayload.site.id);
+    setMessages((prev) => [...prev, { id: `ai-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, role: "ai", content: "Site gerado com sucesso! Como posso refinar?" }]);
+
+  } catch (err: any) {
+    premiumToast.error("Erro", err?.message || "Falha ao gerar site");
+    setMessages((prev) => [
+      ...prev,
+      { id: `err-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, role: "ai", content: "Houve um erro tÃ©cnico ao montar o site. Tente novamente." }
+    ]);
+  } finally {
+    setIsGenerating(false);
+  }
+};
 
   const handlePublishConfirm = async () => {
     if (!subdomainInput || !siteData) {
@@ -280,29 +314,24 @@ export default function Studio() {
     setIsPublishing(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/sites/publish`, {
+      const response = await apiFetch(`/api/sites/publish`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      body: JSON.stringify({
           siteId: currentSiteId, 
           subdomain: subdomainInput,
           userId: user?.id,
           content: siteData, 
-          name: siteData.hero?.headline || "Novo Site",
-          description: siteData.hero?.subheadline || ""
+          name: siteData.sections?.find((s: any) => s.type === "hero")?.headline || "Novo Site",
+          description: siteData.sections?.find((s: any) => s.type === "hero")?.subheadline || ""
         })
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Erro desconhecido");
+      const parsedPublish = await readApiResponse(response);
+      if (!parsedPublish.ok) throw new Error(parsedPublish.error || "Erro desconhecido");
+      const data = parsedPublish.data;
 
       if (data.site && data.site.id) {
           setCurrentSiteId(data.site.id);
-          const savedSites = JSON.parse(localStorage.getItem("mock_sites") || "[]");
-          const updatedSites = savedSites.map((s: any) => 
-            s.id === currentSiteId ? { ...s, id: data.site.id, subdomain: subdomainInput, is_published: true } : s
-          );
-          localStorage.setItem("mock_sites", JSON.stringify(updatedSites));
       }
 
       premiumToast.success("Site Publicado!", "Seu site já está no ar.");
@@ -314,7 +343,6 @@ export default function Studio() {
       window.open(`https://${subdomainInput}.boder.app`, '_blank');
 
     } catch (error: any) {
-      console.error(error);
       premiumToast.error("Erro ao publicar", error.message);
     } finally {
       setIsPublishing(false);
@@ -404,6 +432,7 @@ export default function Studio() {
             {/* Indicador de "Gerando..." */}
             {isGenerating && (
               <motion.div
+                key="chat-generating"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="flex gap-3"
@@ -421,7 +450,7 @@ export default function Studio() {
                 </div>
               </motion.div>
             )}
-            <div ref={messagesEndRef} />
+            <div key="chat-end-anchor" ref={messagesEndRef} />
           </AnimatePresence>
         </div>
 
@@ -662,3 +691,4 @@ export default function Studio() {
     </div>
   );
 }
+

@@ -30,13 +30,22 @@ import {
   Wand2,
 } from "lucide-react";
 import boderLogo from "@/assets/boder-logo.png";
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { useApiClient } from "@/lib/apiClient";
 
 interface OnboardingData {
   template: Template | null;
   descricao: string;
   customizations: string;
+}
+
+interface GenerationContext {
+  templateName?: string;
+  templateCategory?: string;
+  templateStyle?: string;
+  templatePrompt?: string;
+  userPrompt?: string;
+  customizations?: string;
+  mustHave?: string[];
 }
 
 const STEPS = [
@@ -61,6 +70,7 @@ const CATEGORY_ICONS: Record<string, any> = {
 export default function Create() {
   const { user, isSignedIn } = useUser();
   const { openSignIn } = useClerk();
+  const { apiFetch } = useApiClient();
   const { play, enabled: soundEnabled, toggle: toggleSound } = useSounds();
   const navigate = useNavigate();
 
@@ -80,12 +90,12 @@ export default function Create() {
     async function fetchCredits() {
       if (isSignedIn && user) {
         try {
-          const res = await fetch(`${API_URL}/api/user/${user.id}?email=${user.primaryEmailAddress?.emailAddress}`);
+          const res = await apiFetch(`/api/user/${user.id}?email=${user.primaryEmailAddress?.emailAddress}`);
           if (!res.ok) throw new Error("Falha ao conectar no servidor");
           const data = await res.json();
           setCredits(data.credits);
         } catch (error) {
-          console.error("Erro ao buscar créditos:", error);
+          console.warn("Erro ao buscar créditos:", error);
           setCredits("?"); 
         }
       }
@@ -94,6 +104,14 @@ export default function Create() {
   }, [isSignedIn, user]);
 
   const filteredTemplates = getTemplatesByCategory(selectedCategory);
+
+  const extractMustHave = (userPrompt: string, customizations?: string) => {
+    const raw = `${userPrompt}\n${customizations || ""}`
+      .split(/\n|;|,|\. /)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 8);
+    return Array.from(new Set(raw)).slice(0, 12);
+  };
 
   useEffect(() => {
     if (pendingGeneration && isSignedIn && user) {
@@ -122,14 +140,27 @@ export default function Create() {
     setData({ ...data, template });
   };
 
-  const handleContinueFromCustomizations = () => {
-    play("transition");
-    navigate("/studio", {
-      state: {
-        initialPrompt: data.descricao,
-      },
-    });
-  };
+ const handleContinueFromCustomizations = () => {
+  if (!data.template) return;
+  
+  play("transition");
+  
+  // Limpa rascunhos antigos antes de começar um novo com template
+  sessionStorage.removeItem("current_draft_site");
+  sessionStorage.removeItem("current_draft_id");
+
+  navigate("/studio", {
+    state: {
+      initialPrompt: data.descricao,
+      templateId: data.template.id, 
+      templateName: data.template.name,
+      templateCategory: data.template.category,
+      templateStyle: data.template.style,
+      templateBasePrompt: data.template.prompt,
+      customizations: data.customizations
+    },
+  });
+};
 
   const handleGenerate = async () => {
     if (!data.template) {
@@ -153,19 +184,24 @@ export default function Create() {
     setStep(5);
 
     try {
-      const promptLimpo = `
-        Categoria do Negócio: ${data.template.category}
-        Descrição detalhada: ${data.descricao}
-        Customizações do usuário: ${data.customizations || "Foco em alta conversão e profissionalismo."}
-      `.trim();
-
-      const response = await fetch(`${API_URL}/api/generate`, {
+      const response = await apiFetch(`/api/generate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        // Fluxo legacy ainda usa geração direta no Create (step 4)
+        // então enviamos o mesmo contexto rico que o Studio usa.
         body: JSON.stringify({
-          prompt: promptLimpo,
+          prompt: data.descricao,
           userId: user.id,
           userEmail: user.primaryEmailAddress?.emailAddress,
+          templateId: data.template.id,
+          generationContext: {
+            templateName: data.template.name,
+            templateCategory: data.template.category,
+            templateStyle: data.template.style,
+            templatePrompt: data.template.prompt,
+            userPrompt: data.descricao,
+            customizations: data.customizations || "",
+            mustHave: extractMustHave(data.descricao, data.customizations),
+          } as GenerationContext,
         })
       });
 
@@ -184,6 +220,7 @@ export default function Create() {
 
       // IMPORTANTE: Agora codigoGerado é um objeto JSON, não HTML!
       const conteudoJson = resultBackend.code;
+<<<<<<< HEAD
       const codigoHtml = resultBackend.html; // Novo: pega o HTML completo
 
       const fakeId = `site-${Date.now()}`;
@@ -205,16 +242,34 @@ export default function Create() {
 
       const savedSites = JSON.parse(localStorage.getItem("mock_sites") || "[]");
       localStorage.setItem("mock_sites", JSON.stringify([newSiteData, ...savedSites]));
+=======
+      const heroSection = conteudoJson?.sections?.find((s: any) => s.type === "hero");
+
+      const draftResponse = await apiFetch("/api/sites/draft", {
+        method: "POST",
+        body: JSON.stringify({
+          content: conteudoJson,
+          name: heroSection?.headline || `${data.template.name} - Site`,
+          description: heroSection?.subheadline || data.descricao,
+          nicho: data.template.category,
+          objetivo: data.template.category,
+          estilo: data.template.style,
+        }),
+      });
+      const draftPayload = await draftResponse.json();
+      if (!draftResponse.ok) {
+        throw new Error(draftPayload.error || "Falha ao salvar rascunho");
+      }
+>>>>>>> a27c719 (ajuste na criação dos sites)
 
       play("success");
-      setGeneratedSiteId(fakeId);
+      setGeneratedSiteId(draftPayload.site.id);
       
       setTimeout(() => {
         setStep(6);
       }, 500);
 
     } catch (err: any) {
-      console.error("Erro na geração:", err);
       const mensagemErro = err.message.includes("Saldo") 
         ? err.message 
         : "A IA sofreu uma sobrecarga. Tente gerar novamente.";
@@ -645,3 +700,4 @@ export default function Create() {
     </div>
   );
 }
+

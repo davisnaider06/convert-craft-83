@@ -1,18 +1,135 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const Groq = require("groq-sdk");
+const { getTemplateBlueprint } = require("../utils/templates");
 require("dotenv").config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
+let geminiDisabled = false;
+let groqDisabled = false;
 
+<<<<<<< HEAD
 const SYSTEM_PROMPT = `
 Você é um Copywriter Sênior, Web Designer e Especialista em Landing Pages de Alta Conversão (como Lovable e v0).
 O usuário vai te passar o Nicho e as Customizações. Você DEVE gerar um site COMPLETO e PROFISSIONAL.
 
 Você DEVE retornar EXATAMENTE um JSON válido com a seguinte estrutura. NÃO adicione texto extra, nem markdown.
 Cada seção deve ser completa, com múltiplos componentes realistas e de alto impacto visual.
+=======
+const AVAILABLE_SECTIONS = [
+  "navbar",
+  "hero",
+  "feature-grid",
+  "testimonial-slider",
+  "pricing-table",
+  "faq-section",
+  "cta-section",
+  "product-catalog",
+  "profile-header",
+  "link-buttons",
+  "project-gallery",
+  "social-proof",
+  "footer-section",
+];
 
+const SECTION_ALIASES = {
+  cta: "cta-section",
+  features: "feature-grid",
+  feature_grid: "feature-grid",
+  testimonials: "testimonial-slider",
+  testimonial_slider: "testimonial-slider",
+  pricing: "pricing-table",
+  pricing_table: "pricing-table",
+  faq: "faq-section",
+  faq_section: "faq-section",
+  products: "product-catalog",
+  product_catalog: "product-catalog",
+  projects: "project-gallery",
+  project_gallery: "project-gallery",
+  social: "social-proof",
+  social_proof: "social-proof",
+  footer: "footer-section",
+  footer_section: "footer-section",
+  links: "link-buttons",
+  link_buttons: "link-buttons",
+  profile: "profile-header",
+  profile_header: "profile-header",
+};
+>>>>>>> a27c719 (ajuste na criação dos sites)
+
+const STOPWORDS = new Set([
+  "para", "com", "sem", "uma", "uns", "umas", "que", "por", "dos", "das", "de", "do", "da", "the", "and", "you", "seu", "sua", "seus", "suas", "mais", "muito", "sobre", "como", "site", "pagina",
+]);
+
+function normalizeSectionType(type) {
+  const base = String(type || "").toLowerCase().trim();
+  return SECTION_ALIASES[base] || base;
+}
+
+function isAllowedSection(type) {
+  return AVAILABLE_SECTIONS.includes(type);
+}
+
+function getMinSectionsByCategory(category) {
+  const key = String(category || "").toLowerCase();
+  if (key === "ecommerce") return 8;
+  if (key === "service") return 7;
+  if (key === "portfolio") return 6;
+  if (key === "biolink") return 4;
+  return 6;
+}
+
+function categoryRequiredSections(category) {
+  const key = String(category || "").toLowerCase();
+  if (key === "ecommerce") return ["hero", "product-catalog", "pricing-table", "faq-section", "cta-section", "footer-section"];
+  if (key === "portfolio") return ["hero", "project-gallery", "cta-section", "footer-section"];
+  if (key === "biolink") return ["profile-header", "link-buttons", "footer-section"];
+  if (key === "service") return ["hero", "feature-grid", "testimonial-slider", "cta-section", "footer-section"];
+  return ["hero", "feature-grid", "cta-section", "footer-section"];
+}
+
+function hashSeed(input) {
+  let h = 2166136261;
+  const str = String(input || "");
+  for (let i = 0; i < str.length; i += 1) {
+    h ^= str.charCodeAt(i);
+    h += (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24);
+  }
+  return Math.abs(h >>> 0);
+}
+
+function getVariationTokens({ templateId, userPrompt, category, style }) {
+  const seed = hashSeed(`${templateId || "custom"}|${category || "landing"}|${style || "profissional"}|${userPrompt || ""}|${Date.now()}`);
+  const paletteShift = seed % 9;
+  const narrative = seed % 3 === 0 ? "direto e comercial" : seed % 3 === 1 ? "consultivo e confiavel" : "inspiracional e aspiracional";
+  const ctaStyle = seed % 2 === 0 ? "acao imediata" : "convite progressivo";
+  return { seed, paletteShift, narrative, ctaStyle };
+}
+
+function extractKeywords(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s-]/gu, " ")
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 4 && !STOPWORDS.has(t));
+}
+
+function normalizeMustHave(prompt, customizations, mustHave) {
+  const base = Array.isArray(mustHave) ? mustHave : [];
+  const fromPrompt = String(prompt || "").split(/[.;\n]/).map((x) => x.trim()).filter((x) => x.length > 10);
+  const fromCustom = String(customizations || "").split(/[.;\n]/).map((x) => x.trim()).filter((x) => x.length > 10);
+  return Array.from(new Set([...base, ...fromPrompt.slice(0, 6), ...fromCustom.slice(0, 6)])).slice(0, 12);
+}
+
+function buildPlannerPrompt({ userPrompt, customizations, mustHave, category, templateName, style, templatePrompt, variation }) {
+  return `
+Voce e um estrategista de landing pages.
+Gere um plano de estrutura e copy com base no briefing abaixo.
+
+Retorne SOMENTE JSON valido com esta raiz:
 {
+<<<<<<< HEAD
   "colors": {
     "primary": "Código HEX principal (ex: #3B82F6)",
     "secondary": "Código HEX secundário (ex: #1F2937)",
@@ -259,76 +376,49 @@ Cada seção deve ser completa, com múltiplos componentes realistas e de alto i
       { "platform": "instagram", "handle": "@empresa" }
     ],
     "copyright": "© 2024 Empresa. Todos os direitos reservados."
+=======
+  "objective": "string",
+  "target_audience": "string",
+  "tone": "string",
+  "required_sections": ["section-type"],
+  "section_briefs": [{"type":"hero","goal":"...","must_include":["..."]}],
+  "must_cover_items": ["..."],
+  "conversion_flow": "string",
+  "style_guardrails": {
+    "palette_notes": "string",
+    "layout_notes": "string",
+    "copy_notes": "string"
+>>>>>>> a27c719 (ajuste na criação dos sites)
   }
 }
-`;
 
-async function gerarDados(prompt) {
-    // LISTA DE MODELOS CORRIGIDA (Estes são os nomes estáveis)
-    const geminiModels = [
-        "gemini-1.5-flash", // Mais rápido e estável atualmente
-        "gemini-1.5-pro",   // Mais inteligente
-        "gemini-2.0-flash", // Experimental (pode dar erro de quota, por isso deixei por último ou em teste)
-        "gemini-1.0-pro"    // Fallback antigo
-    ];
+Regras:
+- required_sections deve usar APENAS: [${AVAILABLE_SECTIONS.join(", ")}]
+- incluir secoes suficientes para pagina completa
+- nao use placeholders tipo "__headline__"
+- incluir TODOS os requisitos obrigatorios no must_cover_items
 
-    let dadosJson = null;
+Contexto:
+- template: ${templateName || "custom"}
+- categoria: ${category || "landing"}
+- estilo desejado: ${style || "profissional"}
+- prompt base template: ${templatePrompt || "nao informado"}
+- narrativa variavel: ${variation.narrative}
+- cta style: ${variation.ctaStyle}
+- palette shift: ${variation.paletteShift}
 
-    // TENTATIVA COM GEMINI (GOOGLE)
-    for (const modelName of geminiModels) {
-        try {
-            console.log(`🤖 Tentando Gemini com o modelo: ${modelName}...`);
-            const model = genAI.getGenerativeModel({ 
-                model: modelName,
-                generationConfig: { responseMimeType: "application/json" } 
-            });
-            
-            // Timeout de segurança de 25s
-            const resultPromise = model.generateContent(`${SYSTEM_PROMPT}\n\nINSTRUÇÕES DO USUÁRIO:\n${prompt}`);
-            const result = await Promise.race([
-                resultPromise,
-                new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 25000))
-            ]);
+Briefing usuario:
+${userPrompt || ""}
 
-            const text = result.response.text();
-            
-            // Tenta parsear para garantir que é JSON válido
-            dadosJson = JSON.parse(text);
-            console.log(`✅ Sucesso com ${modelName}!`);
-            break; // Se deu certo, para o loop
-            
-        } catch (e) {
-            console.warn(`⚠️ Falha no ${modelName}: ${e.message.split('\n')[0]}`);
-            // Continua para o próximo modelo...
-        }
-    }
+Customizacoes:
+${customizations || "nenhuma"}
 
-    if (dadosJson) return dadosJson;
-
-    // TENTATIVA DE EMERGÊNCIA COM GROQ (Llama)
-    console.warn("🚨 Todos os modelos Gemini falharam. Tentando Groq de emergência...");
-    if (groq) {
-        try {
-            const completion = await groq.chat.completions.create({
-                messages: [
-                    { role: "system", content: SYSTEM_PROMPT },
-                    { role: "user", content: prompt }
-                ],
-                model: "llama-3.3-70b-versatile",
-                response_format: { type: "json_object" }, 
-                temperature: 0.7,
-            });
-            const text = completion.choices[0]?.message?.content || "{}";
-            console.log("✅ Sucesso com Groq!");
-            return JSON.parse(text);
-        } catch (e) {
-            console.error("❌ Groq também falhou:", e.message);
-        }
-    }
-    
-    throw new Error("O sistema de IA está sobrecarregado. Por favor, tente novamente em alguns instantes.");
+Requisitos obrigatorios:
+${mustHave.length ? mustHave.map((x) => `- ${x}`).join("\n") : "- nenhum"}
+`.trim();
 }
 
+<<<<<<< HEAD
 function gerarIconeSVG(iconName) {
     const icos = {
         "lightning-bolt": '<svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
@@ -1174,8 +1264,630 @@ async function gerarSite(prompt) {
         jsonData: dadosJson,
         html: htmlCompleto
     };
+=======
+function buildComposerPrompt({ planner, templateBlueprint, userPrompt, customizations, category, variation }) {
+  return `
+Voce e um web designer/copywriter senior.
+Sua tarefa: transformar o plano e blueprint em JSON final de site com alta qualidade e variedade.
+
+Saida obrigatoria: SOMENTE JSON valido com raiz:
+{
+  "colors": {"primary":"#hex","secondary":"#hex","accent":"#hex"},
+  "sections": [ ... ]
+>>>>>>> a27c719 (ajuste na criação dos sites)
 }
 
-function limparCodigo(texto) { return texto; }
+Regras de qualidade:
+1) Cobrir 100% dos must_cover_items do plano.
+2) Nunca retornar placeholders "__...__" ou texto generico vazio.
+3) Garantir narrativa coerente entre secoes.
+4) Variar estrutura e copy conforme briefing (nao repetir formula fixa).
+5) Respeitar categoria e objetivo de conversao.
+6) Cada section precisa ter campos uteis preenchidos.
+7) Usar somente types permitidos: [${AVAILABLE_SECTIONS.join(", ")}]
 
-module.exports = { gerarSite, limparCodigo };
+Contexto de variedade:
+- narrative: ${variation.narrative}
+- cta_style: ${variation.ctaStyle}
+- palette_shift_hint: ${variation.paletteShift}
+
+Plano (fonte da verdade):
+${JSON.stringify(planner, null, 2)}
+
+Blueprint base (guia, nao engessa):
+${JSON.stringify(templateBlueprint, null, 2)}
+
+Briefing usuario:
+${userPrompt || ""}
+
+Customizacoes:
+${customizations || "nenhuma"}
+
+Categoria:
+${category || "landing"}
+`.trim();
+}
+
+function buildRepairPrompt({ issues, candidate, planner, category }) {
+  return `
+Corrija o JSON de site abaixo.
+
+Retorne SOMENTE JSON valido no formato:
+{ "colors": {...}, "sections": [...] }
+
+Problemas que precisam ser corrigidos:
+${issues.map((x) => `- ${x}`).join("\n")}
+
+Plano esperado:
+${JSON.stringify(planner, null, 2)}
+
+Categoria:
+${category || "landing"}
+
+JSON atual:
+${JSON.stringify(candidate, null, 2)}
+`.trim();
+}
+
+async function generateJsonWithGemini({ systemPrompt, userPrompt, temperature = 0.9 }) {
+  if (geminiDisabled) return null;
+  const geminiModels = ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"];
+
+  for (const modelName of geminiModels) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: { responseMimeType: "application/json", temperature },
+      });
+
+      const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+      const resultPromise = model.generateContent(fullPrompt);
+      const result = await Promise.race([
+        resultPromise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 30000)),
+      ]);
+
+      return JSON.parse(result.response.text());
+    } catch (error) {
+      const reason = error?.message ? String(error.message).split("\n")[0] : "erro desconhecido";
+      console.warn(`[IA][Gemini ${modelName}] falha: ${reason}`);
+      const full = String(error?.message || error || "");
+      if (full.includes("API_KEY_INVALID") || full.includes("API key not valid")) {
+        geminiDisabled = true;
+        break;
+      }
+    }
+  }
+  return null;
+}
+
+async function generateJsonWithGroq({ systemPrompt, userPrompt, temperature = 0.9 }) {
+  if (groqDisabled) return null;
+  if (!groq) return null;
+  try {
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      temperature,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+    });
+    return JSON.parse(completion.choices[0]?.message?.content || "{}");
+  } catch (error) {
+    console.warn("[IA][Groq] falha:", error?.message || error);
+    const full = String(error?.message || error || "");
+    if (full.includes("Invalid API Key") || full.includes("authentication")) {
+      groqDisabled = true;
+    }
+    return null;
+  }
+}
+
+async function generateJsonWithFallback(params) {
+  const geminiResult = await generateJsonWithGemini(params);
+  if (geminiResult) return geminiResult;
+  return generateJsonWithGroq(params);
+}
+
+function applySectionDefaults(section) {
+  const type = normalizeSectionType(section?.type);
+  const base = { ...(section || {}), type };
+
+  if (type === "navbar") {
+    return {
+      ...base,
+      logo_text: base.logo_text || "Logo",
+      links: Array.isArray(base.links) && base.links.length > 0 ? base.links : [{ label: "Inicio", url: "#inicio" }, { label: "Contato", url: "#contato" }],
+      cta_text: base.cta_text || base.cta || "Comecar",
+    };
+  }
+
+  if (type === "hero") {
+    return {
+      ...base,
+      headline: base.headline || "Tecnologia ao seu alcance",
+      subheadline: base.subheadline || "Solucoes personalizadas para acelerar seus resultados.",
+      cta: base.cta || "Quero comecar",
+      image_keyword: base.image_keyword || "business technology",
+    };
+  }
+
+  if (type === "feature-grid") {
+    return {
+      ...base,
+      title: base.title || "Diferenciais",
+      features: Array.isArray(base.features) && base.features.length > 0
+        ? base.features
+        : [
+            { title: "Performance", description: "Entrega rapida com foco em conversao.", icon: "zap" },
+            { title: "Confianca", description: "Processos claros e previsiveis.", icon: "shield" },
+            { title: "Escala", description: "Estrutura pronta para crescimento.", icon: "chart" },
+          ],
+    };
+  }
+
+  if (type === "testimonial-slider") {
+    return {
+      ...base,
+      title: base.title || "Resultados de clientes",
+      testimonials: Array.isArray(base.testimonials) && base.testimonials.length > 0
+        ? base.testimonials
+        : [{ name: "Cliente", role: "Empreendedor", content: "Excelente experiencia e resultado.", rating: 5 }],
+    };
+  }
+
+  if (type === "pricing-table") {
+    return {
+      ...base,
+      title: base.title || "Planos",
+      plans: Array.isArray(base.plans) && base.plans.length > 0
+        ? base.plans
+        : [{ name: "Plano principal", price: "R$ 197", features: ["Implementacao", "Suporte"], recommended: true, cta: "Quero este plano" }],
+    };
+  }
+
+  if (type === "faq-section") {
+    return {
+      ...base,
+      title: base.title || "Perguntas frequentes",
+      items: Array.isArray(base.items) && base.items.length > 0
+        ? base.items
+        : [{ question: "Como funciona?", answer: "Nossa equipe cuida da implementacao de ponta a ponta." }],
+    };
+  }
+
+  if (type === "cta-section") {
+    return {
+      ...base,
+      title: base.title || "Pronto para avancar?",
+      subtitle: base.subtitle || "Fale com a equipe e receba uma proposta personalizada.",
+      button_text: base.button_text || "Falar agora",
+    };
+  }
+
+  if (type === "product-catalog") {
+    return {
+      ...base,
+      title: base.title || "Produtos",
+      products: Array.isArray(base.products) && base.products.length > 0
+        ? base.products
+        : [{ name: "Produto principal", price: "R$ 99", description: "Descricao do produto.", image_keyword: "product" }],
+    };
+  }
+
+  if (type === "profile-header") {
+    return {
+      ...base,
+      name: base.name || "Seu Nome",
+      bio: base.bio || "Criador de conteudo digital.",
+      image_keyword: base.image_keyword || "portrait",
+    };
+  }
+
+  if (type === "link-buttons") {
+    return {
+      ...base,
+      links: Array.isArray(base.links) && base.links.length > 0
+        ? base.links
+        : [{ label: "Meu principal link", url: "#", icon: "link" }],
+    };
+  }
+
+  if (type === "project-gallery") {
+    return {
+      ...base,
+      title: base.title || "Projetos",
+      projects: Array.isArray(base.projects) && base.projects.length > 0
+        ? base.projects
+        : [{ title: "Projeto destaque", description: "Descricao do projeto.", image_keyword: "design project", link: "#" }],
+    };
+  }
+
+  if (type === "social-proof") {
+    return {
+      ...base,
+      title: base.title || "Quem confia",
+      logos: Array.isArray(base.logos) && base.logos.length > 0 ? base.logos : ["Cliente A", "Cliente B", "Cliente C"],
+    };
+  }
+
+  if (type === "footer-section") {
+    return {
+      ...base,
+      text: base.text || `© ${new Date().getFullYear()} Todos os direitos reservados.`,
+      social_media: Array.isArray(base.social_media) ? base.social_media : [],
+    };
+  }
+
+  return base;
+}
+
+function sanitizeCandidate(raw) {
+  const rawSections = Array.isArray(raw?.sections) ? raw.sections : [];
+  const normalizedRaw = rawSections
+    .map((section) => ({ ...section, type: normalizeSectionType(section?.type) }))
+    .filter((section) => isAllowedSection(section.type));
+
+  const deduped = [];
+  const seen = new Set();
+  for (const section of normalizedRaw) {
+    const allowMultiple = section.type === "testimonial-slider" || section.type === "feature-grid";
+    if (!allowMultiple && seen.has(section.type)) continue;
+    seen.add(section.type);
+    deduped.push(section);
+  }
+
+  const safeColors = raw?.colors && typeof raw.colors === "object"
+    ? raw.colors
+    : { primary: "#2563eb", secondary: "#0f172a", accent: "#14b8a6" };
+
+  return {
+    colors: safeColors,
+    sections: deduped.map((section) => applySectionDefaults(section)),
+  };
+}
+
+function mergeWithBlueprint(rawSite, blueprint, category) {
+  const sanitized = sanitizeCandidate(rawSite);
+  const merged = [...sanitized.sections];
+  const minSections = getMinSectionsByCategory(category);
+  const blueprintSections = Array.isArray(blueprint?.sections) ? blueprint.sections : [];
+
+  for (const section of blueprintSections) {
+    const type = normalizeSectionType(section?.type);
+    if (!isAllowedSection(type)) continue;
+    if (merged.some((s) => normalizeSectionType(s.type) === type)) continue;
+    merged.push(applySectionDefaults({ ...section, type }));
+    if (merged.length >= minSections) break;
+  }
+
+  return {
+    colors: sanitized.colors || blueprint?.colors || { primary: "#2563eb", secondary: "#0f172a", accent: "#14b8a6" },
+    sections: merged,
+  };
+}
+
+function validateSiteQuality(site, { category, mustHave, userPrompt, planner }) {
+  const issues = [];
+  if (!site || typeof site !== "object") issues.push("JSON final ausente.");
+  if (!Array.isArray(site?.sections) || site.sections.length === 0) issues.push("Sem secoes no site.");
+
+  const sectionTypes = Array.isArray(site?.sections)
+    ? site.sections.map((s) => normalizeSectionType(s?.type)).filter(Boolean)
+    : [];
+
+  if (sectionTypes.some((t) => !isAllowedSection(t))) {
+    issues.push("Existem section types nao permitidos.");
+  }
+
+  const minSections = getMinSectionsByCategory(category);
+  if (sectionTypes.length < minSections) {
+    issues.push(`Quantidade de secoes insuficiente. Minimo esperado: ${minSections}.`);
+  }
+
+  const requiredTypes = categoryRequiredSections(category);
+  for (const t of requiredTypes) {
+    if (!sectionTypes.includes(t)) issues.push(`Secao obrigatoria ausente: ${t}.`);
+  }
+
+  const serial = JSON.stringify(site).toLowerCase();
+  if (serial.includes("__")) issues.push("Ha placeholders nao resolvidos (__...).");
+  if (serial.includes("lorem ipsum")) issues.push("Texto generico detectado (lorem ipsum).");
+
+  const mustCover = Array.isArray(planner?.must_cover_items) && planner.must_cover_items.length > 0
+    ? planner.must_cover_items
+    : mustHave;
+  const tokens = extractKeywords(`${mustCover.join(" ")} ${userPrompt || ""}`);
+  const missingTokenHits = [];
+  for (const token of tokens.slice(0, 30)) {
+    if (!serial.includes(token)) missingTokenHits.push(token);
+  }
+  if (missingTokenHits.length > 10) {
+    issues.push(`Cobertura do briefing insuficiente. Tokens ausentes: ${missingTokenHits.slice(0, 12).join(", ")}.`);
+  }
+
+  const uniqueTypes = new Set(sectionTypes);
+  if (uniqueTypes.size < Math.min(4, minSections - 1)) {
+    issues.push("Pouca variacao de secoes (estrutura muito repetitiva).");
+  }
+
+  return {
+    valid: issues.length === 0,
+    issues,
+  };
+}
+
+function buildPlannerFallback({ category, mustHave }) {
+  const required = categoryRequiredSections(category);
+  return {
+    objective: "converter visitantes em leads/clientes",
+    target_audience: "publico-alvo do briefing",
+    tone: "profissional",
+    required_sections: required,
+    section_briefs: required.map((t) => ({ type: t, goal: `cumprir papel da secao ${t}`, must_include: [] })),
+    must_cover_items: mustHave,
+    conversion_flow: "descoberta -> prova -> oferta -> acao",
+    style_guardrails: {
+      palette_notes: "paleta coerente com nicho",
+      layout_notes: "hierarquia clara e escaneavel",
+      copy_notes: "texto especifico para o negocio",
+    },
+  };
+}
+
+function sentenceCase(text) {
+  const s = String(text || "").trim();
+  if (!s) return "";
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function truncate(text, max = 70) {
+  const s = String(text || "").trim();
+  if (s.length <= max) return s;
+  return `${s.slice(0, max - 1)}…`;
+}
+
+function deriveBrand(userPrompt) {
+  const words = extractKeywords(userPrompt).slice(0, 2);
+  if (!words.length) return "Sua Marca";
+  return words.map((w) => sentenceCase(w)).join(" ");
+}
+
+function buildHeuristicSite({ userPrompt, category, templateBlueprint, planner, mustHave }) {
+  const brand = deriveBrand(userPrompt);
+  const intent = truncate(userPrompt, 120);
+  const required = Array.isArray(planner?.required_sections) && planner.required_sections.length
+    ? planner.required_sections.map((s) => normalizeSectionType(s)).filter(isAllowedSection)
+    : categoryRequiredSections(category);
+
+  const sections = required.map((type) => {
+    if (type === "hero") {
+      return {
+        type,
+        headline: `${brand}: solução feita para ${extractKeywords(userPrompt)[0] || "seu negócio"}`,
+        subheadline: truncate(intent, 150),
+        cta: "Quero começar agora",
+        image_keyword: `${extractKeywords(userPrompt).slice(0, 2).join(" ") || "business"} professional`,
+      };
+    }
+    if (type === "feature-grid") {
+      return {
+        type,
+        title: "Diferenciais principais",
+        features: (mustHave.slice(0, 4).length ? mustHave.slice(0, 4) : ["Atendimento especializado", "Processo claro", "Resultados mensuráveis", "Suporte rápido"])
+          .map((item, idx) => ({
+            title: truncate(sentenceCase(item), 48),
+            description: `Aplicação prática para ${extractKeywords(userPrompt)[0] || "seu público"}.`,
+            icon: idx % 2 === 0 ? "zap" : "shield",
+          })),
+      };
+    }
+    if (type === "testimonial-slider") {
+      return {
+        type,
+        title: "Quem já escolheu recomenda",
+        testimonials: [
+          { name: "Cliente 1", role: "Empreendedora", content: "Resultado rápido e comunicação excelente.", rating: 5 },
+          { name: "Cliente 2", role: "Gestor", content: "Estrutura profissional e foco real em conversão.", rating: 5 },
+        ],
+      };
+    }
+    if (type === "pricing-table") {
+      return {
+        type,
+        title: "Planos e investimento",
+        plans: [
+          { name: "Essencial", price: "R$ 97", features: ["Implementação inicial", "Suporte padrão"], recommended: false, cta: "Começar" },
+          { name: "Profissional", price: "R$ 297", features: ["Estratégia completa", "Suporte prioritário", "Otimização contínua"], recommended: true, cta: "Escolher plano" },
+        ],
+      };
+    }
+    if (type === "faq-section") {
+      return {
+        type,
+        title: "Perguntas frequentes",
+        items: [
+          { question: "Como funciona na prática?", answer: "Você define o objetivo e nós entregamos a estrutura completa orientada a conversão." },
+          { question: "Em quanto tempo fica pronto?", answer: "A versão inicial sai em minutos e pode ser refinada com ajustes iterativos." },
+          { question: "Consigo personalizar depois?", answer: "Sim. Você pode editar conteúdo, estilo e domínio quando quiser." },
+        ],
+      };
+    }
+    if (type === "cta-section") {
+      return {
+        type,
+        title: "Pronto para tirar o projeto do papel?",
+        subtitle: "Clique no botão e comece sua próxima página de alta performance.",
+        button_text: "Quero publicar meu site",
+      };
+    }
+    if (type === "product-catalog") {
+      return {
+        type,
+        title: "Produtos em destaque",
+        products: [
+          { name: "Produto Principal", price: "R$ 129", description: "Solução pensada para gerar resultado rápido.", image_keyword: "product premium" },
+          { name: "Kit Avançado", price: "R$ 249", description: "Pacote completo para escalar seus resultados.", image_keyword: "product kit" },
+          { name: "Assinatura", price: "R$ 59/mês", description: "Acesso contínuo com suporte e novidades.", image_keyword: "subscription product" },
+        ],
+      };
+    }
+    if (type === "project-gallery") {
+      return {
+        type,
+        title: "Projetos e resultados",
+        projects: [
+          { title: "Projeto Destaque 1", description: "Reestruturação completa da página com foco em conversão.", image_keyword: "web project", link: "#" },
+          { title: "Projeto Destaque 2", description: "Posicionamento visual e copy orientada a leads.", image_keyword: "landing page", link: "#" },
+        ],
+      };
+    }
+    if (type === "profile-header") {
+      return {
+        type,
+        name: brand,
+        bio: truncate(intent, 140),
+        image_keyword: "creator portrait professional",
+      };
+    }
+    if (type === "link-buttons") {
+      return {
+        type,
+        links: [
+          { label: "Meu principal conteúdo", url: "#", icon: "link" },
+          { label: "Instagram", url: "#", icon: "instagram" },
+          { label: "Contato direto", url: "#", icon: "mail" },
+        ],
+      };
+    }
+    if (type === "social-proof") {
+      return {
+        type,
+        title: "Confiado por clientes e parceiros",
+        logos: ["Cliente A", "Cliente B", "Cliente C", "Cliente D"],
+      };
+    }
+    if (type === "navbar") {
+      return {
+        type,
+        logo_text: brand,
+        links: [{ label: "Início", url: "#inicio" }, { label: "Soluções", url: "#solucoes" }, { label: "Contato", url: "#contato" }],
+        cta_text: "Falar com especialista",
+      };
+    }
+    if (type === "footer-section") {
+      return {
+        type,
+        text: `© ${new Date().getFullYear()} ${brand}. Todos os direitos reservados.`,
+        social_media: [{ platform: "instagram", url: "#" }, { platform: "linkedin", url: "#" }],
+      };
+    }
+    return { type };
+  });
+
+  const heuristic = {
+    colors: templateBlueprint?.colors || { primary: "#2563eb", secondary: "#0f172a", accent: "#14b8a6" },
+    sections,
+  };
+
+  return mergeWithBlueprint(heuristic, templateBlueprint, category);
+}
+
+async function gerarSite(prompt, templateId, generationContext = null) {
+  const userPrompt = generationContext?.userPrompt || prompt || "";
+  const customizations = generationContext?.customizations || "";
+  const templateName = generationContext?.templateName || templateId || "template-custom";
+  const category = generationContext?.templateCategory || "landing";
+  const style = generationContext?.templateStyle || "profissional";
+  const templatePrompt = generationContext?.templatePrompt || "";
+  const mustHave = normalizeMustHave(userPrompt, customizations, generationContext?.mustHave || []);
+  const templateBlueprint = getTemplateBlueprint(templateId, category);
+  const variation = getVariationTokens({ templateId, userPrompt, category, style });
+
+  const plannerSystemPrompt = `
+Voce e um planner de paginas de alta conversao.
+Retorne somente JSON valido, sem markdown.
+`.trim();
+
+  const plannerUserPrompt = buildPlannerPrompt({
+    userPrompt,
+    customizations,
+    mustHave,
+    category,
+    templateName,
+    style,
+    templatePrompt,
+    variation,
+  });
+
+  const plannerResult = await generateJsonWithFallback({
+    systemPrompt: plannerSystemPrompt,
+    userPrompt: plannerUserPrompt,
+    temperature: 0.7,
+  });
+  const planner = plannerResult && typeof plannerResult === "object"
+    ? plannerResult
+    : buildPlannerFallback({ category, mustHave });
+
+  const composerSystemPrompt = `
+Voce e um gerador de JSON de sites.
+Saida deve ser apenas JSON valido.
+`.trim();
+  const composerUserPrompt = buildComposerPrompt({
+    planner,
+    templateBlueprint,
+    userPrompt,
+    customizations,
+    category,
+    variation,
+  });
+
+  const composed = await generateJsonWithFallback({
+    systemPrompt: composerSystemPrompt,
+    userPrompt: composerUserPrompt,
+    temperature: 0.95,
+  });
+  if (!composed) {
+    return buildHeuristicSite({
+      userPrompt,
+      category,
+      templateBlueprint,
+      planner,
+      mustHave,
+    });
+  }
+
+  let candidate = mergeWithBlueprint(composed, templateBlueprint, category);
+  let validation = validateSiteQuality(candidate, { category, mustHave, userPrompt, planner });
+
+  if (!validation.valid) {
+    const repairPrompt = buildRepairPrompt({
+      issues: validation.issues,
+      candidate,
+      planner,
+      category,
+    });
+
+    const repaired = await generateJsonWithFallback({
+      systemPrompt: composerSystemPrompt,
+      userPrompt: repairPrompt,
+      temperature: 0.55,
+    });
+
+    if (repaired) {
+      candidate = mergeWithBlueprint(repaired, templateBlueprint, category);
+      validation = validateSiteQuality(candidate, { category, mustHave, userPrompt, planner });
+    }
+  }
+
+  // Fallback final deterministico para nunca devolver payload incompleto.
+  if (!validation.valid) {
+    candidate = mergeWithBlueprint({ sections: planner.required_sections?.map((type) => ({ type })) || [], colors: templateBlueprint.colors }, templateBlueprint, category);
+  }
+
+  return candidate;
+}
+
+module.exports = { gerarSite };

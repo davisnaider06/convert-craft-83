@@ -40,8 +40,9 @@ export function useSounds() {
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     preloadSounds();
-  }, [preloadSounds]);
+  }, [enabled, preloadSounds]);
 
   const play = useCallback(
     (type: SoundType) => {
