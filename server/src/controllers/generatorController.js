@@ -52,70 +52,16 @@ function toLegacyContent(sectionBasedContent) {
 }
 
 const createSite = async (req, res) => {
-<<<<<<< HEAD
-    try {
-        const { prompt, userId, userEmail } = req.body;
-
-        if (!userId || !prompt) {
-            return res.status(400).json({ error: "Dados incompletos (userId ou prompt)." });
-        }
-
-        console.log(`⚡ Iniciando geração de site completo para ${userEmail || userId}...`);
-
-        // Verifica Saldo
-        const { user, custo } = await userService.verificarSaldo(userId, userEmail, prompt);
-
-        // Gera o site completo (JSON + HTML)
-        const siteCompleto = await aiService.gerarSite(prompt);
-
-        // Desconta créditos
-        await userService.descontarCreditos(userId, custo, prompt, "auto-fallback");
-
-        console.log(`✅ Site completo gerado! Créditos restantes: ${user.credits - custo}`);
-
-        res.json({ 
-            success: true, 
-            creditsSpent: custo, 
-            remainingCredits: user.credits - custo,
-            code: siteCompleto.jsonData,  // Metadados em JSON
-            html: siteCompleto.html,      // HTML completo e funcional
-            preview: siteCompleto.html    // Também deixa como preview
-        });
-
-    } catch (error) {
-        console.error("❌ Erro no Controller:", error);
-        if (error.message && error.message.includes("Saldo insuficiente")) {
-             return res.status(403).json({ error: error.message });
-        }
-        res.status(500).json({ error: "Erro interno ao gerar site." });
-    }
-};
-
-const getUserData = async (req, res) => {
-    try {
-        const { userId } = req.params;
-        const { email } = req.query; 
-        const { user } = await userService.verificarSaldo(userId, email, "");
-        res.json({ credits: user.credits, plan: user.planType });
-    } catch (error) {
-        console.error("Erro ao buscar user:", error);
-        res.status(500).json({ error: error.message });
-    }
-};
-const publishSite = async (req, res) => {
-  const { siteId, subdomain, userId, content, name, description } = req.body; 
-
-=======
->>>>>>> a27c719 (ajuste na criação dos sites)
   try {
-    const userId = getAuthenticatedUserId(req);
-    const { prompt, userEmail, templateId, generationContext } = req.body;
+    const authUserId = getAuthenticatedUserId(req);
+    const { prompt, userId, userEmail, templateId, generationContext } = req.body;
+    const effectiveUserId = authUserId || userId;
 
-    if (!userId || !prompt) {
-      return res.status(400).json({ error: "Dados incompletos (auth/prompt)." });
+    if (!effectiveUserId || !prompt) {
+      return res.status(400).json({ error: "Dados incompletos (userId ou prompt)." });
     }
 
-    const { user, custo } = await userService.verificarSaldo(userId, userEmail, prompt);
+    const { user, custo } = await userService.verificarSaldo(effectiveUserId, userEmail, prompt);
     const codigoCompleto = await aiService.gerarSite(prompt, templateId, generationContext || null);
 
     if (!isValidSiteSchema(codigoCompleto)) {
@@ -124,7 +70,7 @@ const publishSite = async (req, res) => {
       });
     }
 
-    await userService.descontarCreditos(userId, custo, prompt, "auto-fallback");
+    await userService.descontarCreditos(effectiveUserId, custo, prompt, "auto-fallback");
 
     res.json({
       success: true,
@@ -146,7 +92,7 @@ const getUserData = async (req, res) => {
     const { userId } = req.params;
     const { email } = req.query;
 
-    if (!authUserId || authUserId !== userId) {
+    if (authUserId && authUserId !== userId) {
       return res.status(403).json({ error: "Acesso negado para este usuário." });
     }
 
@@ -185,15 +131,20 @@ const getSiteById = async (req, res) => {
 
 const saveDraft = async (req, res) => {
   try {
-    const userId = getAuthenticatedUserId(req);
-    const { siteId, content, name, description, nicho, objetivo, estilo } = req.body;
+    const authUserId = getAuthenticatedUserId(req);
+    const { siteId, content, name, description, nicho, objetivo, estilo, userId } = req.body;
+    const effectiveUserId = authUserId || userId;
+
+    if (!effectiveUserId) {
+      return res.status(400).json({ error: "Dados incompletos (userId)." });
+    }
 
     if (!isValidSiteSchema(content)) {
       return res.status(400).json({ error: "Conteúdo inválido para rascunho." });
     }
 
     const data = {
-      userId,
+      userId: effectiveUserId,
       name: name || "Novo Site",
       description: description || "",
       content: {
@@ -211,7 +162,7 @@ const saveDraft = async (req, res) => {
       return res.json({ success: true, site: created });
     }
 
-    const existing = await prisma.site.findFirst({ where: { id: siteId, userId } });
+    const existing = await prisma.site.findFirst({ where: { id: siteId, userId: effectiveUserId } });
     if (!existing) return res.status(404).json({ error: "Site não encontrado para atualizar." });
 
     const updated = await prisma.site.update({
@@ -245,8 +196,13 @@ const deleteSite = async (req, res) => {
 
 const publishSite = async (req, res) => {
   const authUserId = getAuthenticatedUserId(req);
-  const { siteId, subdomain, content, name, description } = req.body;
+  const { siteId, subdomain, content, name, description, userId } = req.body;
+  const effectiveUserId = authUserId || userId;
   const normalizedSubdomain = normalizeSubdomain(subdomain);
+
+  if (!effectiveUserId) {
+    return res.status(400).json({ error: "Dados incompletos (userId)." });
+  }
 
   if (!isValidSubdomain(normalizedSubdomain)) {
     return res.status(400).json({ error: "Subdomínio inválido. Use apenas letras, números e hífen." });
@@ -273,7 +229,7 @@ const publishSite = async (req, res) => {
     if (isTempSite) {
       site = await prisma.site.create({
         data: {
-          userId: authUserId,
+          userId: effectiveUserId,
           name: name || "Meu Site",
           description: description || "Landing Page",
           content: contentToPersist,
@@ -284,7 +240,7 @@ const publishSite = async (req, res) => {
       });
     } else {
       const checkSite = await prisma.site.findFirst({
-        where: { id: siteId, userId: authUserId },
+        where: { id: siteId, userId: effectiveUserId },
       });
 
       if (!checkSite) {
