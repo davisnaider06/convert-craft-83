@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -217,32 +217,8 @@ export default function Create() {
       if (resultBackend.remainingCredits !== undefined) {
         setCredits(resultBackend.remainingCredits);
       }
-
       // IMPORTANTE: Agora codigoGerado é um objeto JSON, não HTML!
       const conteudoJson = resultBackend.code;
-<<<<<<< HEAD
-      const codigoHtml = resultBackend.html; // Novo: pega o HTML completo
-
-      const fakeId = `site-${Date.now()}`;
-      
-      const newSiteData = {
-        id: fakeId,
-        user_id: user.id,
-        name: conteudoJson.hero?.headline || `${data.template.name} - Site`,
-        description: conteudoJson.hero?.subheadline || data.descricao,
-        nicho: data.template.category,
-        objetivo: data.template.category,
-        estilo: data.template.style,
-        content: conteudoJson, // <- SALVA O JSON AQUI EM 'content' em vez de 'html_content'
-        html: codigoHtml,      // <- NOVO: Salva o HTML completo também
-        has_watermark: true,
-        created_at: new Date().toISOString(),
-        is_published: false
-      };
-
-      const savedSites = JSON.parse(localStorage.getItem("mock_sites") || "[]");
-      localStorage.setItem("mock_sites", JSON.stringify([newSiteData, ...savedSites]));
-=======
       const heroSection = conteudoJson?.sections?.find((s: any) => s.type === "hero");
 
       const draftResponse = await apiFetch("/api/sites/draft", {
@@ -260,7 +236,6 @@ export default function Create() {
       if (!draftResponse.ok) {
         throw new Error(draftPayload.error || "Falha ao salvar rascunho");
       }
->>>>>>> a27c719 (ajuste na criação dos sites)
 
       play("success");
       setGeneratedSiteId(draftPayload.site.id);
