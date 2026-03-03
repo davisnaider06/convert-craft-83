@@ -357,9 +357,9 @@ useEffect(() => {
   };
 
   return (
-    <div className="flex h-screen w-full bg-slate-50 overflow-hidden font-sans">
+    <div className="flex h-screen w-full flex-col lg:flex-row bg-slate-50 overflow-hidden font-sans">
       {/* ================= BARRA LATERAL (WORKSPACE / CHAT) ================= */}
-      <aside className="w-[380px] h-full bg-slate-950 text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800 relative z-20 shadow-2xl">
+      <aside className="w-full lg:w-[360px] xl:w-[380px] h-[45vh] min-h-[340px] lg:h-full bg-slate-950 text-slate-300 flex flex-col flex-shrink-0 border-b lg:border-b-0 lg:border-r border-slate-800 relative z-20 shadow-2xl">
         {/* Topo da Sidebar */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800/60 bg-slate-950/50 backdrop-blur-md">
           <div className="flex items-center gap-3">
@@ -490,22 +490,22 @@ useEffect(() => {
       </aside>
 
       {/* ================= ÁREA DO CANVAS (PREVIEW DO SITE) ================= */}
-      <main className="flex-1 flex flex-col h-full bg-slate-100/50 relative">
+      <main className="flex-1 min-w-0 flex flex-col h-full bg-slate-100/50 relative">
         {/* Topbar do Canvas */}
-        <header className="h-16 flex items-center justify-between px-6 bg-white border-b border-slate-200 z-10 shadow-sm">
-          <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg border border-slate-200/60">
+        <header className="h-16 flex items-center justify-between gap-3 px-3 sm:px-4 md:px-6 bg-white border-b border-slate-200 z-10 shadow-sm">
+          <div className="flex flex-1 min-w-0 sm:flex-none sm:w-auto items-center gap-2 bg-slate-100 p-1 rounded-lg border border-slate-200/60">
             <Button
               variant={viewMode === "desktop" ? "secondary" : "ghost"}
               size="sm"
               onClick={() => setViewMode("desktop")}
-              className={`h-8 px-3 rounded-md gap-2 transition-all duration-200 ${
+              className={`h-8 flex-1 sm:flex-none px-3 rounded-md gap-2 transition-all duration-200 ${
                 viewMode === "desktop"
                   ? "bg-white shadow-sm text-slate-900"
                   : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50"
               }`}
             >
               <Monitor className="h-4 w-4" />
-              <span className="hidden lg:inline text-xs font-medium">
+              <span className="text-xs font-medium">
                 Desktop
               </span>
             </Button>
@@ -514,36 +514,36 @@ useEffect(() => {
               variant={viewMode === "mobile" ? "secondary" : "ghost"}
               size="sm"
               onClick={() => setViewMode("mobile")}
-              className={`h-8 px-3 rounded-md gap-2 transition-all duration-200 ${
+              className={`h-8 flex-1 sm:flex-none px-3 rounded-md gap-2 transition-all duration-200 ${
                 viewMode === "mobile"
                   ? "bg-white shadow-sm text-slate-900"
                   : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/50"
               }`}
             >
               <Smartphone className="h-4 w-4" />
-              <span className="hidden lg:inline text-xs font-medium">
+              <span className="text-xs font-medium">
                 Mobile
               </span>
             </Button>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             {/* BOTÃO DE PUBLICAR (ACIONA O MODAL) */}
             {siteData && (
-              <Button 
+              <Button
                 size="sm" 
                 onClick={() => setIsPublishModalOpen(true)}
-                className="h-9 gap-2 shadow-md shadow-primary/20 hover:shadow-lg transition-all"
+                className="h-9 gap-2 shadow-md shadow-primary/20 hover:shadow-lg transition-all whitespace-nowrap"
               >
                 <Rocket className="h-4 w-4" />
-                <span className="text-sm">Publicar</span>
+                <span className="text-sm hidden sm:inline">Publicar</span>
               </Button>
             )}
           </div>
         </header>
 
         {/* Container do Site Renderizado */}
-        <div className="flex-1 overflow-auto p-4 md:p-8 flex justify-center items-start pattern-grid-slate-200/50">
+        <div className="flex-1 overflow-auto p-2 sm:p-4 md:p-8 flex justify-center items-start pattern-grid-slate-200/50">
           <AnimatePresence mode="wait">
             {siteData ? (
               <motion.div
@@ -553,12 +553,12 @@ useEffect(() => {
                 transition={{ duration: 0.5, type: "spring", stiffness: 100 }}
                 className={`bg-white rounded-xl shadow-2xl shadow-slate-200/50 border border-slate-200/60 overflow-hidden relative transition-all duration-300 ${
                   viewMode === "mobile"
-                    ? "w-[375px] min-h-[667px]"
+                    ? "w-full max-w-[390px] min-h-[667px]"
                     : "w-full max-w-[1200px]"
                 }`}
                 style={{
                   height:
-                    viewMode === "mobile" ? "800px" : "calc(100vh - 120px)",
+                    viewMode === "mobile" ? "800px" : "calc(100vh - 130px)",
                 }}
               >
                 <div className="w-full h-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-200 relative">
