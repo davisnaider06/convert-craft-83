@@ -10,6 +10,9 @@ interface HeroSectionProps {
     cta: string;
     image_keyword?: string;
     visual_variant?: string;
+    background_style?: string;
+    gradient_from?: string;
+    gradient_to?: string;
   };
   primaryColor: string;
   isMobile: boolean;
@@ -19,9 +22,20 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ content, primaryColor,
   const seed = encodeURIComponent(content.image_keyword || content.headline || "saas abstract");
   const heroImageUrl = `https://picsum.photos/seed/${seed}/1800/900`;
 
+  const wantsGradient = String(content.background_style || "").toLowerCase() === "gradient";
+  const gradientFrom = content.gradient_from || primaryColor;
+  const gradientTo = content.gradient_to || "#22d3ee";
+
   return (
     <section className="relative pt-20 pb-12 px-4 overflow-hidden bg-[#040816]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(37,99,235,0.25),transparent_45%)]" />
+      <div
+        className="absolute inset-0"
+        style={
+          wantsGradient
+            ? { backgroundImage: `radial-gradient(circle at 50% 0%, ${gradientFrom}66, transparent 50%), linear-gradient(120deg, ${gradientFrom}22, ${gradientTo}18)` }
+            : { backgroundImage: "radial-gradient(circle at 50% 0%, rgba(37,99,235,0.25), transparent 45%)" }
+        }
+      />
       <div className="container mx-auto text-center relative z-10 max-w-5xl">
         <Badge className="mb-5 bg-white/5 text-slate-200 border border-white/10 hover:bg-white/10">
           New

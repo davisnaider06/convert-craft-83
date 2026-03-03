@@ -178,8 +178,86 @@ function normalizeMustHave(prompt, customizations, mustHave) {
   return Array.from(new Set([...base, ...fromPrompt.slice(0, 8), ...fromCustom.slice(0, 8)])).slice(0, 14);
 }
 
-function isPlaceholderText(value) {
-  return String(value || "").includes("__");
+const COLOR_KEYWORDS = {
+  vermelho: "#ef4444",
+  red: "#ef4444",
+  azul: "#2563eb",
+  blue: "#2563eb",
+  verde: "#22c55e",
+  green: "#22c55e",
+  amarelo: "#eab308",
+  yellow: "#eab308",
+  roxo: "#8b5cf6",
+  purple: "#8b5cf6",
+  laranja: "#f97316",
+  orange: "#f97316",
+  rosa: "#ec4899",
+  pink: "#ec4899",
+  preto: "#0f172a",
+  black: "#0f172a",
+  branco: "#ffffff",
+  white: "#ffffff",
+  dourado: "#c9a962",
+  gold: "#c9a962",
+  ciano: "#06b6d4",
+  cyan: "#06b6d4",
+};
+
+function extractStyleDirectives(prompt, customizations) {
+  const text = `${String(prompt || "")}\n${String(customizations || "")}`;
+  const lower = text.toLowerCase();
+  const hexMatches = text.match(/#[0-9a-fA-F]{6}\b/g) || [];
+  const keywordColors = Object.entries(COLOR_KEYWORDS)
+    .filter(([k]) => lower.includes(k))
+    .map(([, v]) => v);
+
+  const uniqueColors = Array.from(new Set([...hexMatches, ...keywordColors]));
+  const wantsGradient = /\b(gradiente|gradient)\b/i.test(text);
+
+  return {
+    requestedColors: uniqueColors.slice(0, 3),
+    wantsGradient,
+    raw: text,
+  };
+}
+
+function applyStyleDirectives(site, directives) {
+  const currentColors = site?.colors || {};
+  const palette = directives?.requestedColors || [];
+  const primary = palette[0] || currentColors.primary || "#2563eb";
+  const secondary = palette[1] || currentColors.secondary || "#0f172a";
+  const accent = palette[2] || currentColors.accent || "#14b8a6";
+
+  const output = {
+    ...(site || {}),
+    colors: { primary, secondary, accent },
+    metadata: {
+      ...(site?.metadata || {}),
+      style_directives: directives || {},
+    },
+  };
+
+  if (directives?.wantsGradient) {
+    output.metadata.background = {
+      type: "gradient",
+      from: primary,
+      to: accent || secondary,
+    };
+    output.sections = ensureArray(output.sections).map((s) => {
+      const t = normalizeSectionType(s?.type);
+      if (t === "hero" || t === "cta-section") {
+        return {
+          ...s,
+          background_style: "gradient",
+          gradient_from: primary,
+          gradient_to: accent || secondary,
+        };
+      }
+      return s;
+    });
+  }
+
+  return output;
 }
 
 function ensureArray(value) {
@@ -331,7 +409,7 @@ function composeFinalSite(rawSite, { category, style, templateId, mustHave, user
   };
 }
 
-function validateSiteQuality(site, { category, mustHave, userPrompt, sectionPlan }) {
+function validateSiteQuality(site, { category, mustHave, userPrompt, sectionPlan, styleDirectives }) {
   const issues = [];
   if (!site || !Array.isArray(site.sections) || site.sections.length === 0) issues.push("Sem secoes.");
 
@@ -358,6 +436,21 @@ function validateSiteQuality(site, { category, mustHave, userPrompt, sectionPlan
   const tokens = extractKeywords(`${mustHave.join(" ")} ${userPrompt || ""}`);
   const missing = tokens.slice(0, 20).filter((t) => !serial.includes(t));
   if (missing.length > 11) issues.push("Cobertura baixa do briefing.");
+
+  const requested = ensureArray(styleDirectives?.requestedColors).map((c) => String(c || "").toLowerCase());
+  if (requested.length > 0) {
+    const palette = [
+      String(site?.colors?.primary || "").toLowerCase(),
+      String(site?.colors?.secondary || "").toLowerCase(),
+      String(site?.colors?.accent || "").toLowerCase(),
+    ];
+    const hasRequestedPalette = requested.every((c) => palette.includes(c));
+    if (!hasRequestedPalette) issues.push("Cores pedidas no prompt nao foram aplicadas corretamente.");
+  }
+  if (styleDirectives?.wantsGradient) {
+    const hasGradient = String(site?.metadata?.background?.type || "").toLowerCase() === "gradient";
+    if (!hasGradient) issues.push("Prompt pediu gradiente, mas gradiente nao foi aplicado.");
+  }
 
   return { valid: issues.length === 0, issues };
 }
@@ -451,6 +544,7 @@ async function gerarSite(prompt, templateId, generationContext = null) {
   const category = generationContext?.templateCategory || "landing";
   const style = generationContext?.templateStyle || "profissional";
   const mustHave = normalizeMustHave(userPrompt, customizations, generationContext?.mustHave || []);
+  const styleDirectives = extractStyleDirectives(userPrompt, customizations);
   const templateBlueprint = getTemplateBlueprint(templateId, category);
 
   const provisionalPlan = pickPlan({
@@ -470,6 +564,7 @@ Retorne JSON:
 }
 Use somente sections permitidas: [${AVAILABLE_SECTIONS.join(", ")}].
 ${plannerPromptContext(provisionalPlan, mustHave)}
+Diretrizes visuais obrigatorias: ${JSON.stringify(styleDirectives)}
 Categoria: ${category}
 Estilo visual: ${style}
 Prompt do usuario: ${userPrompt}
@@ -501,6 +596,7 @@ Regras:
 - Preencha copy real de negocio em tom ${STYLE_TONE[String(style || "").toLowerCase()] || STYLE_TONE.profissional}
 - Siga esta ordem de secoes preferencialmente: ${sectionPlan.join(" -> ")}
 ${plannerPromptContext(sectionPlan, mustHave)}
+Diretrizes visuais obrigatorias: ${JSON.stringify(styleDirectives)}
 Briefing do usuario: ${userPrompt}
 Customizacoes: ${customizations || "nenhuma"}
 Plano do estrategista: ${JSON.stringify(planner)}
@@ -509,11 +605,13 @@ Blueprint base: ${JSON.stringify(templateBlueprint)}
 
   const composed = await generateJsonWithFallback({ systemPrompt: composerSystem, userPrompt: composerUser, temperature: 0.82 });
   if (!composed) {
-    return buildHeuristicSite({ userPrompt, category, style, templateId, templateBlueprint, mustHave, sectionPlan });
+    const fallback = buildHeuristicSite({ userPrompt, category, style, templateId, templateBlueprint, mustHave, sectionPlan });
+    return applyStyleDirectives(fallback, styleDirectives);
   }
 
   let candidate = composeFinalSite(composed, { category, style, templateId, mustHave, userPrompt, templateBlueprint, sectionPlan });
-  let validation = validateSiteQuality(candidate, { category, mustHave, userPrompt, sectionPlan });
+  candidate = applyStyleDirectives(candidate, styleDirectives);
+  let validation = validateSiteQuality(candidate, { category, mustHave, userPrompt, sectionPlan, styleDirectives });
 
   if (!validation.valid) {
     const repairUser = `
@@ -527,12 +625,14 @@ JSON atual: ${JSON.stringify(candidate)}
     const repaired = await generateJsonWithFallback({ systemPrompt: composerSystem, userPrompt: repairUser, temperature: 0.45 });
     if (repaired) {
       candidate = composeFinalSite(repaired, { category, style, templateId, mustHave, userPrompt, templateBlueprint, sectionPlan });
-      validation = validateSiteQuality(candidate, { category, mustHave, userPrompt, sectionPlan });
+      candidate = applyStyleDirectives(candidate, styleDirectives);
+      validation = validateSiteQuality(candidate, { category, mustHave, userPrompt, sectionPlan, styleDirectives });
     }
   }
 
   if (!validation.valid) {
-    return buildHeuristicSite({ userPrompt, category, style, templateId, templateBlueprint, mustHave, sectionPlan });
+    const fallback = buildHeuristicSite({ userPrompt, category, style, templateId, templateBlueprint, mustHave, sectionPlan });
+    return applyStyleDirectives(fallback, styleDirectives);
   }
 
   return candidate;

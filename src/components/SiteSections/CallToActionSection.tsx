@@ -6,14 +6,24 @@ interface CallToActionProps {
     title: string;
     subtitle?: string;
     button_text: string;
+    background_style?: string;
+    gradient_from?: string;
+    gradient_to?: string;
   };
   primaryColor: string;
   isMobile: boolean;
 }
 
 export const CallToActionSection: React.FC<CallToActionProps> = ({ content, primaryColor, isMobile }) => {
+  const wantsGradient = String(content.background_style || "").toLowerCase() === "gradient";
+  const gradientFrom = content.gradient_from || primaryColor;
+  const gradientTo = content.gradient_to || "#22d3ee";
+
   return (
-    <section className="py-20 text-center px-4 bg-[#040816]">
+    <section
+      className="py-20 text-center px-4 bg-[#040816]"
+      style={wantsGradient ? { backgroundImage: `linear-gradient(120deg, ${gradientFrom}22, ${gradientTo}18)` } : undefined}
+    >
       <div className="container mx-auto max-w-4xl border border-white/10 bg-white/[0.03] rounded-2xl p-8 md:p-12">
         <h2 className={`font-semibold mb-5 text-white ${isMobile ? "text-3xl" : "text-4xl md:text-5xl"}`}>
           {content.title}

@@ -110,9 +110,17 @@ export function SiteRenderer({ data, viewMode = "desktop" }: { data: any; viewMo
   const visualVariant = "equinox";
   const typographyClass = "font-sans";
   const canvasToneClass = "bg-[#040816] text-slate-100";
+  const bg = normalized?.metadata?.background;
+  const canvasStyle =
+    bg?.type === "gradient" && bg?.from && bg?.to
+      ? { backgroundImage: `linear-gradient(180deg, ${bg.from}22 0%, #040816 40%, #040816 100%)` }
+      : undefined;
 
   return (
-    <div className={`min-h-screen ${canvasToneClass} ${typographyClass} w-full overflow-x-hidden ${isMobile ? "max-w-[375px] mx-auto shadow-2xl" : ""}`}>
+    <div
+      className={`min-h-screen ${canvasToneClass} ${typographyClass} w-full overflow-x-hidden ${isMobile ? "max-w-[375px] mx-auto shadow-2xl" : ""}`}
+      style={canvasStyle}
+    >
       {sections.map((section: any, index: number) => {
         const baseType = String(section?.type || "").toLowerCase();
         const normalizedType = SECTION_TYPE_ALIASES[baseType] || baseType;
