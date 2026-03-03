@@ -1,26 +1,23 @@
-import { 
-  Check, Star, ArrowRight, Zap, Shield, 
+import {
+  Check, Star, Zap, Shield,
   Globe, BarChart, Users, Layout, MessageCircle,
-  ShoppingBag, Link as LinkIcon, Briefcase, Award,
+  ShoppingBag, Briefcase, Award,
   Instagram, Twitter, Github, Linkedin, Smartphone, Mail, Youtube
 } from "lucide-react";
-import { motion } from "framer-motion";
-import { useEffect, useRef } from "react";
 
-// Importação dos seus 10 componentes
-import { HeroSection } from '../SiteSections/HeroSection';
-import { FeatureGrid } from '../SiteSections/FeatureGrid';
-import { TestimonialSlider } from '../SiteSections/TestimonialSlider';
-import { PricingTable } from '../SiteSections/PricingTable';
-import { FAQSection } from '../SiteSections/FAQSection';
-import { CallToActionSection } from '../SiteSections/CallToActionSection';
-import { ProductCatalog } from '../SiteSections/ProductCatalog';
-import { ProfileHeader } from '../SiteSections/ProfileHeader';
-import { LinkButtons } from '../SiteSections/LinkButtons';
-import { ProjectGallery } from '../SiteSections/ProjectGallery';
-import { SocialProof } from '../SiteSections/SocialProof';
-import { FooterSection } from '../SiteSections/FooterSections';
-import { Navbar } from '../SiteSections/Navbar';
+import { HeroSection } from "../SiteSections/HeroSection";
+import { FeatureGrid } from "../SiteSections/FeatureGrid";
+import { TestimonialSlider } from "../SiteSections/TestimonialSlider";
+import { PricingTable } from "../SiteSections/PricingTable";
+import { FAQSection } from "../SiteSections/FAQSection";
+import { CallToActionSection } from "../SiteSections/CallToActionSection";
+import { ProductCatalog } from "../SiteSections/ProductCatalog";
+import { ProfileHeader } from "../SiteSections/ProfileHeader";
+import { LinkButtons } from "../SiteSections/LinkButtons";
+import { ProjectGallery } from "../SiteSections/ProjectGallery";
+import { SocialProof } from "../SiteSections/SocialProof";
+import { FooterSection } from "../SiteSections/FooterSections";
+import { Navbar } from "../SiteSections/Navbar";
 
 export const iconMap: Record<string, any> = {
   zap: Zap, shield: Shield, globe: Globe, chart: BarChart,
@@ -30,9 +27,8 @@ export const iconMap: Record<string, any> = {
   youtube: Youtube, briefcase: Briefcase, award: Award, shoppingbag: ShoppingBag
 };
 
-// Helper global para ícones que os subcomponentes podem usar
 export const getIcon = (iconName: string, className: string = "h-6 w-6") => {
-  const IconComponent = iconMap[iconName?.toLowerCase()] || Star;
+  const IconComponent = iconMap[String(iconName || "").toLowerCase()] || Star;
   return <IconComponent className={className} />;
 };
 
@@ -48,38 +44,80 @@ const SECTION_TYPE_ALIASES: Record<string, string> = {
   links: "link-buttons",
   social: "social-proof",
   profile: "profile-header",
+  feature_grid: "feature-grid",
+  testimonial_slider: "testimonial-slider",
+  pricing_table: "pricing-table",
+  faq_section: "faq-section",
+  cta_section: "cta-section",
+  product_catalog: "product-catalog",
+  project_gallery: "project-gallery",
+  social_proof: "social-proof",
+  footer_section: "footer-section",
+  link_buttons: "link-buttons",
+  profile_header: "profile-header",
 };
 
-export function SiteRenderer({ data, viewMode = "desktop" }: { data: any, viewMode?: "desktop" | "mobile" }) {
-  const sections = Array.isArray(data?.sections) ? data.sections : [];
-  // Se não houver seções, exibe estado vazio
-  if (!data || sections.length === 0) {
+function normalizeSiteData(input: any) {
+  let raw = input;
+  if (typeof raw === "string") {
+    try {
+      raw = JSON.parse(raw);
+    } catch {
+      raw = null;
+    }
+  }
+  if (!raw || typeof raw !== "object") return { colors: {}, metadata: {}, sections: [] };
+
+  if (Array.isArray(raw.sections)) return raw;
+  if (raw.content && Array.isArray(raw.content.sections)) return raw.content;
+
+  const sections: any[] = [];
+  if (raw.navbar && typeof raw.navbar === "object") sections.push({ type: "navbar", ...raw.navbar });
+  if (raw.hero && typeof raw.hero === "object") sections.push({ type: "hero", ...raw.hero });
+  if (Array.isArray(raw.features)) sections.push({ type: "feature-grid", title: "Diferenciais", features: raw.features });
+  if (raw.social_proof && typeof raw.social_proof === "object") sections.push({ type: "social-proof", ...raw.social_proof });
+  if (Array.isArray(raw.testimonials)) sections.push({ type: "testimonial-slider", title: "Depoimentos", testimonials: raw.testimonials });
+  if (Array.isArray(raw.pricing)) sections.push({ type: "pricing-table", title: "Planos", plans: raw.pricing });
+  if (Array.isArray(raw.faq)) sections.push({ type: "faq-section", title: "Perguntas frequentes", items: raw.faq });
+  if (raw.cta_section && typeof raw.cta_section === "object") sections.push({ type: "cta-section", ...raw.cta_section });
+  if (Array.isArray(raw.products)) sections.push({ type: "product-catalog", title: "Produtos", products: raw.products });
+  if (Array.isArray(raw.projects)) sections.push({ type: "project-gallery", title: "Projetos", projects: raw.projects });
+  if (raw.profile && typeof raw.profile === "object") sections.push({ type: "profile-header", ...raw.profile });
+  if (Array.isArray(raw.links)) sections.push({ type: "link-buttons", links: raw.links });
+  if (raw.footer_section && typeof raw.footer_section === "object") sections.push({ type: "footer-section", ...raw.footer_section });
+
+  return {
+    colors: raw.colors || {},
+    metadata: raw.metadata || {},
+    sections,
+  };
+}
+
+export function SiteRenderer({ data, viewMode = "desktop" }: { data: any; viewMode?: "desktop" | "mobile" }) {
+  const normalized = normalizeSiteData(data);
+  const sections = Array.isArray(normalized?.sections) ? normalized.sections : [];
+
+  if (sections.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground p-10 text-center">
-        <p>Aguardando a IA estruturar as seções do seu site...</p>
+        <p>Aguardando a IA estruturar as secoes do seu site...</p>
       </div>
     );
   }
 
-  const primaryColor = data.colors?.primary || "#3b82f6";
+  const primaryColor = normalized.colors?.primary || "#3b82f6";
   const isMobile = viewMode === "mobile";
-  const visualVariant = String(data?.metadata?.visual_variant || data?.metadata?.category || "").toLowerCase();
-  const typographyClass = visualVariant === "premium" ? "font-serif" : "font-sans";
-  const canvasToneClass =
-    visualVariant === "portfolio"
-      ? "bg-slate-950 text-slate-100"
-      : visualVariant === "event"
-        ? "bg-gradient-to-b from-indigo-950 to-fuchsia-950 text-white"
-        : "bg-white text-slate-900";
+  const visualVariant = "equinox";
+  const typographyClass = "font-sans";
+  const canvasToneClass = "bg-[#040816] text-slate-100";
 
   return (
-    <div className={`min-h-screen ${canvasToneClass} ${typographyClass} w-full overflow-x-hidden ${isMobile ? 'max-w-[375px] mx-auto shadow-2xl' : ''}`}>
-      
-      {/* O SiteRenderer agora é apenas um distribuidor (Dispatcher) */}
-     {sections.map((section: any, index: number) => {
-  const normalizedType = SECTION_TYPE_ALIASES[String(section?.type || "").toLowerCase()] || String(section?.type || "").toLowerCase();
-  const sectionKey = `${normalizedType || "unknown"}-${index}`;
-  const props = { key: sectionKey, content: section, primaryColor, isMobile };
+    <div className={`min-h-screen ${canvasToneClass} ${typographyClass} w-full overflow-x-hidden ${isMobile ? "max-w-[375px] mx-auto shadow-2xl" : ""}`}>
+      {sections.map((section: any, index: number) => {
+        const baseType = String(section?.type || "").toLowerCase();
+        const normalizedType = SECTION_TYPE_ALIASES[baseType] || baseType;
+        const sectionKey = `${normalizedType || "unknown"}-${index}`;
+        const props = { key: sectionKey, content: { ...section, visual_variant: visualVariant }, primaryColor, isMobile };
 
         switch (normalizedType) {
           case "hero":
@@ -109,12 +147,9 @@ export function SiteRenderer({ data, viewMode = "desktop" }: { data: any, viewMo
           case "navbar":
             return <Navbar key={sectionKey} content={section} primaryColor={primaryColor} />;
           default:
-            // Caso a IA invente um tipo novo, não quebramos o site
-            console.warn("Seção desconhecida:", section.type, "normalizado:", normalizedType, "seção:", section);
             return null;
         }
       })}
     </div>
   );
 }
-

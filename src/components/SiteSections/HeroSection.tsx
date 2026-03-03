@@ -1,9 +1,7 @@
 import React from "react";
-import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Shield, Sparkles, Clock3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 
 interface HeroSectionProps {
   content: {
@@ -18,61 +16,61 @@ interface HeroSectionProps {
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ content, primaryColor, isMobile }) => {
-  const seed = encodeURIComponent(content.image_keyword || content.headline || "hero business");
-  const heroImageUrl = `https://picsum.photos/seed/${seed}/1600/900`;
-  const variant = String(content.visual_variant || "").toLowerCase();
-  const darkHero = variant === "portfolio" || variant === "premium" || variant === "event";
-  const sectionBg =
-    variant === "event"
-      ? "bg-gradient-to-br from-indigo-950 via-violet-900 to-fuchsia-900"
-      : darkHero
-        ? "bg-slate-950"
-        : variant === "lead"
-          ? "bg-gradient-to-b from-indigo-50 to-white"
-          : "bg-white";
+  const seed = encodeURIComponent(content.image_keyword || content.headline || "saas abstract");
+  const heroImageUrl = `https://picsum.photos/seed/${seed}/1800/900`;
 
   return (
-    <section className={`relative pt-24 pb-20 px-4 overflow-hidden ${sectionBg}`}>
+    <section className="relative pt-20 pb-12 px-4 overflow-hidden bg-[#040816]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(37,99,235,0.25),transparent_45%)]" />
       <div className="container mx-auto text-center relative z-10 max-w-5xl">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <Badge variant={darkHero ? "secondary" : "outline"} className="mb-5">
-            Site pronto para conversao
-          </Badge>
-          <h1 className={`font-extrabold tracking-tight mb-8 leading-[1.1] ${darkHero ? "text-white" : "text-slate-900"} ${isMobile ? "text-4xl" : "text-5xl md:text-7xl"}`}>
-            {content.headline || "Titulo principal"}
-          </h1>
-          <p className={`mb-10 max-w-2xl mx-auto leading-relaxed ${darkHero ? "text-slate-200" : "text-slate-600"} ${isMobile ? "text-lg" : "text-xl md:text-2xl"}`}>
-            {content.subheadline || "Subtitulo focado no beneficio principal do cliente."}
-          </p>
-          <Button
-            size={isMobile ? "default" : "lg"}
-            className="rounded-full px-8 h-12 gap-2 text-white w-full sm:w-auto"
-            style={{ backgroundColor: primaryColor }}
-          >
-            {content.cta || "Quero comecar agora"}
-            <ArrowRight className="h-4 w-4" />
+        <Badge className="mb-5 bg-white/5 text-slate-200 border border-white/10 hover:bg-white/10">
+          New
+        </Badge>
+        <h1 className={`font-semibold tracking-tight text-white mb-6 leading-[1.05] ${isMobile ? "text-4xl" : "text-5xl md:text-7xl"}`}>
+          {content.headline || "Transform Your Business With Our SaaS Solution"}
+        </h1>
+        <p className={`mb-10 max-w-3xl mx-auto leading-relaxed text-slate-300 ${isMobile ? "text-base" : "text-lg md:text-xl"}`}>
+          {content.subheadline || "Automatize operacoes, aumente produtividade e eleve a experiencia do cliente com uma plataforma moderna."}
+        </p>
+
+        <div className="flex items-center justify-center gap-3 flex-wrap">
+          <Button size={isMobile ? "default" : "lg"} className="rounded-xl px-8 h-11" style={{ backgroundColor: "#fff", color: "#0f172a" }}>
+            {content.cta || "Get started"}
           </Button>
-        </motion.div>
+          <Button size={isMobile ? "default" : "lg"} variant="ghost" className="rounded-xl px-8 h-11 text-slate-100 hover:bg-white/10">
+            Request a Demo <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.2 }}
-        className="container mx-auto mt-14 px-4 max-w-5xl"
-      >
-        <Card className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 relative aspect-video md:aspect-[21/9]">
+      <div className="container mx-auto mt-8 px-4 max-w-5xl relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-6">
+          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-slate-200 text-sm flex items-center gap-2">
+            <Clock3 className="h-4 w-4" style={{ color: primaryColor }} />
+            4-6 week delivery
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-slate-200 text-sm flex items-center gap-2">
+            <Sparkles className="h-4 w-4" style={{ color: primaryColor }} />
+            Transparent pricing
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-slate-200 text-sm flex items-center gap-2">
+            <Shield className="h-4 w-4" style={{ color: primaryColor }} />
+            Money back guarantee
+          </div>
+        </div>
+
+        <div className="rounded-2xl overflow-hidden border border-white/10 bg-[#0b1228] relative aspect-video shadow-[0_0_60px_rgba(37,99,235,0.3)]">
           <img
             src={heroImageUrl}
             alt="Demonstracao"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover opacity-85"
             loading="lazy"
             onError={(e) => {
-              e.currentTarget.src = "https://picsum.photos/1600/900";
+              e.currentTarget.src = "https://picsum.photos/1800/900";
             }}
           />
-        </Card>
-      </motion.div>
+        </div>
+      </div>
     </section>
   );
 };
