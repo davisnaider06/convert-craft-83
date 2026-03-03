@@ -18,7 +18,19 @@ interface ProjectGalleryProps {
 }
 
 export const ProjectGallery: React.FC<ProjectGalleryProps> = ({ content, primaryColor, isMobile }) => {
-  if (!content.projects || content.projects.length === 0) return null;
+  const asText = (value: any, fallback: string) => {
+    if (typeof value === "string") return value;
+    if (value && typeof value === "object") return value.name || value.title || value.label || value.text || fallback;
+    return fallback;
+  };
+
+  const projects = (Array.isArray(content.projects) ? content.projects : []).map((proj: any, i: number) => ({
+    title: asText(proj?.title, `Projeto ${i + 1}`),
+    description: asText(proj?.description, "Projeto com foco em resultado."),
+    image_keyword: asText(proj?.image_keyword, "creative"),
+    link: asText(proj?.link, "#"),
+  }));
+  if (projects.length === 0) return null;
 
   return (
     <section className="py-24 bg-white">
@@ -27,7 +39,7 @@ export const ProjectGallery: React.FC<ProjectGalleryProps> = ({ content, primary
           {content.title || "Projetos em Destaque"}
         </h2>
         <div className={`grid gap-8 ${isMobile ? "grid-cols-1" : "md:grid-cols-2"}`}>
-          {content.projects.map((proj, i) => (
+          {projects.map((proj, i) => (
             <motion.div 
               key={i}
               whileHover={{ y: -10 }}

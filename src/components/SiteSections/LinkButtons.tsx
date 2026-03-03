@@ -18,11 +18,22 @@ interface LinkButtonsProps {
 }
 
 export const LinkButtons: React.FC<LinkButtonsProps> = ({ content, primaryColor, isMobile }) => {
-  if (!content.links || content.links.length === 0) return null;
+  const asText = (value: any, fallback: string) => {
+    if (typeof value === "string") return value;
+    if (value && typeof value === "object") return value.name || value.title || value.label || value.text || fallback;
+    return fallback;
+  };
+
+  const links = (Array.isArray(content.links) ? content.links : []).map((link: any, i: number) => ({
+    label: asText(link?.label, `Link ${i + 1}`),
+    url: asText(link?.url, "#"),
+    icon: asText(link?.icon, "link"),
+  }));
+  if (links.length === 0) return null;
 
   return (
     <section className="px-4 pb-12 space-y-4 max-w-md mx-auto">
-      {content.links.map((link: LinkItem, i: number) => (
+      {links.map((link: LinkItem, i: number) => (
         <motion.a
           key={i}
           href={link.url}

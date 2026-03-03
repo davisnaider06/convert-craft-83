@@ -11,7 +11,16 @@ interface SocialProofProps {
 }
 
 export const SocialProof: React.FC<SocialProofProps> = ({ content, primaryColor, isMobile }) => {
-  if (!content.logos || content.logos.length === 0) return null;
+  const normalizeLogo = (item: any) => {
+    if (typeof item === "string") return item;
+    if (item && typeof item === "object") {
+      return item.name || item.title || item.label || item.text || item.link || "Parceiro";
+    }
+    return "Parceiro";
+  };
+
+  const logos = (Array.isArray(content.logos) ? content.logos : []).map(normalizeLogo);
+  if (logos.length === 0) return null;
 
   return (
     <section className="py-10 border-y border-slate-100 bg-slate-50">
@@ -20,7 +29,7 @@ export const SocialProof: React.FC<SocialProofProps> = ({ content, primaryColor,
           {content.title || "Empresas que confiam"}
         </p>
         <div className="flex flex-wrap justify-center gap-8 md:gap-16 items-center">
-          {content.logos.map((logo: string, i: number) => (
+          {logos.map((logo: string, i: number) => (
             <span key={i} className="text-xl font-bold text-slate-300 flex items-center gap-2 grayscale opacity-70">
               {getIcon('globe', 'h-6 w-6')} {logo}
             </span>
