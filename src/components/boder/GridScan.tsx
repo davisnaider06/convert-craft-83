@@ -363,24 +363,43 @@ export const GridScan: React.FC<GridScanProps> = ({
 
   // Load external libraries via script to bypass dynamic require errors
   useEffect(() => {
-    const scripts = [
-      'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js',
-      'https://cdn.jsdelivr.net/npm/postprocessing@6.36.0/build/postprocessing.min.js'
-    ];
-    
-    let loadedCount = 0;
-    scripts.forEach(url => {
-      const script = document.createElement('script');
-      script.src = url;
-      script.async = true;
-      script.onload = () => {
-        loadedCount++;
-        if (loadedCount === scripts.length) {
-          setLibsReady(true);
-        }
-      };
-      document.head.appendChild(script);
-    });
+    if (typeof window === 'undefined') return;
+
+    const globalKey = '__boderExternalLibsPromise__';
+    const w = window as any;
+
+    if (!w[globalKey]) {
+      const scripts = [
+        'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js',
+        'https://cdn.jsdelivr.net/npm/postprocessing@6.36.0/build/postprocessing.min.js'
+      ];
+
+      w[globalKey] = Promise.all(
+        scripts.map((url) => new Promise<void>((resolve, reject) => {
+          const existing = document.querySelector(`script[src="${url}"]`) as HTMLScriptElement | null;
+          if (existing) {
+            if ((existing as any).__loaded) return resolve();
+            existing.addEventListener('load', () => resolve(), { once: true });
+            existing.addEventListener('error', () => reject(new Error(`Falha ao carregar ${url}`)), { once: true });
+            return;
+          }
+
+          const script = document.createElement('script');
+          script.src = url;
+          script.async = true;
+          script.onload = () => {
+            (script as any).__loaded = true;
+            resolve();
+          };
+          script.onerror = () => reject(new Error(`Falha ao carregar ${url}`));
+          document.head.appendChild(script);
+        }))
+      );
+    }
+
+    (w[globalKey] as Promise<void[]>)
+      .then(() => setLibsReady(true))
+      .catch(() => setLibsReady(false));
   }, []);
 
   const pushScan = (t: number) => {
