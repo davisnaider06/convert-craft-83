@@ -19,7 +19,8 @@ interface TestimonialSliderProps {
 }
 
 export const TestimonialSlider: React.FC<TestimonialSliderProps> = ({ content, primaryColor, isMobile }) => {
-  if (!content.testimonials || content.testimonials.length === 0) return null;
+  const testimonials = Array.isArray(content?.testimonials) ? content.testimonials : [];
+  if (testimonials.length === 0) return null;
   const variant = String(content.visual_variant || "").toLowerCase();
   const sectionBg =
     variant === "event"
@@ -37,21 +38,21 @@ export const TestimonialSlider: React.FC<TestimonialSliderProps> = ({ content, p
           {content.title || "O que dizem nossos clientes"}
         </h2>
         <div className={`grid gap-6 ${isMobile ? "grid-cols-1" : "md:grid-cols-2 lg:grid-cols-2"}`}>
-          {content.testimonials.map((t, i) => (
+          {testimonials.map((t, i) => (
             <div key={i} className="p-8 rounded-2xl bg-slate-800 border border-slate-700 h-full flex flex-col">
               <div className="flex gap-1 mb-6 text-yellow-400">
-                {Array.from({ length: t.rating || 5 }).map((_, star) => (
+                {Array.from({ length: Number(t?.rating) > 0 ? Number(t.rating) : 5 }).map((_, star) => (
                   <Star key={star} size={18} fill="currentColor" />
                 ))}
               </div>
-              <p className="text-lg text-slate-300 mb-8 italic flex-1">"{t.content}"</p>
+              <p className="text-lg text-slate-300 mb-8 italic flex-1">"{String(t?.content || "Excelente resultado com o projeto.")}"</p>
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg" style={{ backgroundColor: primaryColor }}>
-                  {t.name.charAt(0)}
+                  {String(t?.name || "C").charAt(0)}
                 </div>
                 <div>
-                  <p className="font-bold">{t.name}</p>
-                  <p className="text-sm text-slate-400">{t.role}</p>
+                  <p className="font-bold">{String(t?.name || "Cliente")}</p>
+                  <p className="text-sm text-slate-400">{String(t?.role || "Cliente")}</p>
                 </div>
               </div>
             </div>

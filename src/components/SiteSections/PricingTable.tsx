@@ -23,7 +23,8 @@ interface PricingTableProps {
 }
 
 export const PricingTable: React.FC<PricingTableProps> = ({ content, primaryColor, isMobile }) => {
-  if (!content.plans || content.plans.length === 0) return null;
+  const plans = Array.isArray(content?.plans) ? content.plans : [];
+  if (plans.length === 0) return null;
 
   const variant = String(content.visual_variant || "").toLowerCase();
   const premium = variant === "premium";
@@ -38,7 +39,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ content, primaryColo
           {content.title || "Planos e Precos"}
         </h2>
         <div className={`grid gap-6 items-stretch ${isMobile ? "grid-cols-1" : "md:grid-cols-3"}`}>
-          {content.plans.map((plan, i) => (
+          {plans.map((plan, i) => (
             <Card
               key={i}
               className={`relative rounded-2xl ${
@@ -60,7 +61,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ content, primaryColo
               </CardHeader>
               <CardContent className="space-y-4">
                 <ul className="space-y-3 min-h-[132px]">
-                  {plan.features.map((feat, j) => (
+                  {(Array.isArray(plan?.features) ? plan.features : []).map((feat, j) => (
                     <li key={j} className={`flex items-start gap-2 text-sm ${premium ? "text-slate-300" : "text-slate-600"}`}>
                       <Check className="h-4 w-4 mt-0.5" style={{ color: primaryColor }} />
                       <span>{feat}</span>

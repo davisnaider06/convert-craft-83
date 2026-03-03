@@ -51,8 +51,9 @@ const SECTION_TYPE_ALIASES: Record<string, string> = {
 };
 
 export function SiteRenderer({ data, viewMode = "desktop" }: { data: any, viewMode?: "desktop" | "mobile" }) {
+  const sections = Array.isArray(data?.sections) ? data.sections : [];
   // Se não houver seções, exibe estado vazio
-  if (!data || !data.sections || data.sections.length === 0) {
+  if (!data || sections.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground p-10 text-center">
         <p>Aguardando a IA estruturar as seções do seu site...</p>
@@ -75,7 +76,7 @@ export function SiteRenderer({ data, viewMode = "desktop" }: { data: any, viewMo
     <div className={`min-h-screen ${canvasToneClass} ${typographyClass} w-full overflow-x-hidden ${isMobile ? 'max-w-[375px] mx-auto shadow-2xl' : ''}`}>
       
       {/* O SiteRenderer agora é apenas um distribuidor (Dispatcher) */}
-     {data.sections.map((section: any, index: number) => {
+     {sections.map((section: any, index: number) => {
   const normalizedType = SECTION_TYPE_ALIASES[String(section?.type || "").toLowerCase()] || String(section?.type || "").toLowerCase();
   const sectionKey = `${normalizedType || "unknown"}-${index}`;
   const props = { key: sectionKey, content: section, primaryColor, isMobile };
@@ -116,3 +117,4 @@ export function SiteRenderer({ data, viewMode = "desktop" }: { data: any, viewMo
     </div>
   );
 }
+

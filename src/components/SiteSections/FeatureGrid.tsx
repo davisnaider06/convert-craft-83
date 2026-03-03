@@ -19,7 +19,8 @@ interface FeatureGridProps {
 }
 
 export const FeatureGrid: React.FC<FeatureGridProps> = ({ content, primaryColor, isMobile }) => {
-  if (!content.features || content.features.length === 0) return null;
+  const features = Array.isArray(content?.features) ? content.features : [];
+  if (features.length === 0) return null;
 
   const variant = String(content.visual_variant || "").toLowerCase();
   const dark = variant === "portfolio" || variant === "premium";
@@ -37,7 +38,7 @@ export const FeatureGrid: React.FC<FeatureGridProps> = ({ content, primaryColor,
           </h2>
         </div>
         <div className={`grid gap-6 ${isMobile ? "grid-cols-1" : "md:grid-cols-3"}`}>
-          {content.features.map((feature, i) => (
+          {features.map((feature, i) => (
             <Card key={i} className={`${cardClass} rounded-2xl transition-all duration-300 hover:shadow-lg`}>
               <CardHeader className="pb-3">
                 <div

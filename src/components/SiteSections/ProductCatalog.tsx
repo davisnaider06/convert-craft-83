@@ -18,14 +18,15 @@ interface ProductCatalogProps {
 }
 
 export const ProductCatalog: React.FC<ProductCatalogProps> = ({ content, primaryColor, isMobile }) => {
-  if (!content.products || content.products.length === 0) return null;
+  const products = Array.isArray(content?.products) ? content.products : [];
+  if (products.length === 0) return null;
 
   return (
     <section className="py-20 bg-slate-50">
       <div className="container mx-auto px-4 max-w-6xl">
         <h2 className="text-3xl font-bold mb-12 text-center">{content.title || "Nossos Produtos"}</h2>
         <div className={`grid gap-8 ${isMobile ? "grid-cols-1" : "md:grid-cols-3"}`}>
-          {content.products.map((product: Product, i: number) => (
+          {products.map((product: Product, i: number) => (
             <div key={i} className="bg-white rounded-3xl overflow-hidden shadow-md border border-slate-100 group">
               <div className="aspect-square bg-slate-200 overflow-hidden">
                 {(() => {

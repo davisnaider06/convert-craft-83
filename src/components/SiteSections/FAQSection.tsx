@@ -17,7 +17,8 @@ interface FAQSectionProps {
 }
 
 export const FAQSection: React.FC<FAQSectionProps> = ({ content, primaryColor }) => {
-  if (!content.items || content.items.length === 0) return null;
+  const items = Array.isArray(content?.items) ? content.items : [];
+  if (items.length === 0) return null;
 
   const variant = String(content.visual_variant || "").toLowerCase();
   const dark = variant === "portfolio" || variant === "premium";
@@ -37,7 +38,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ content, primaryColor })
           </CardHeader>
           <CardContent>
             <Accordion type="single" collapsible className="w-full">
-              {content.items.map((item, i) => (
+              {items.map((item, i) => (
                 <AccordionItem key={i} value={`item-${i}`} className={dark ? "border-slate-700" : undefined}>
                   <AccordionTrigger className={titleClass}>
                     {item.question}

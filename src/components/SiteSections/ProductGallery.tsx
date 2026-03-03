@@ -17,14 +17,15 @@ interface ProjectGalleryProps {
 }
 
 export const ProjectGallery: React.FC<ProjectGalleryProps> = ({ content, primaryColor, isMobile }) => {
-  if (!content.projects || content.projects.length === 0) return null;
+  const projects = Array.isArray(content?.projects) ? content.projects : [];
+  if (projects.length === 0) return null;
 
   return (
     <section className="py-20">
       <div className="container mx-auto px-4 max-w-6xl">
         <h2 className="text-3xl font-bold mb-12 text-center">{content.title || "Meus Projetos"}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {content.projects.map((proj: Project, i: number) => (
+          {projects.map((proj: Project, i: number) => (
             <div key={i} className="group relative rounded-3xl overflow-hidden aspect-video bg-slate-900">
               <img 
                 src={`https://source.unsplash.com/800x450/?${encodeURIComponent(proj.image_keyword || 'design')}`} 
