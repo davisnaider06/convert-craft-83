@@ -16,13 +16,20 @@ export const Navbar: React.FC<NavbarProps> = ({ content, primaryColor }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const scrollRoot = document.querySelector('[data-site-scroll-root="true"]');
+    if (!scrollRoot) return;
+
+    const handleScroll = () => {
+      setIsScrolled((scrollRoot as HTMLElement).scrollTop > 20);
+    };
+
+    handleScroll();
+    scrollRoot.addEventListener('scroll', handleScroll, { passive: true });
+    return () => scrollRoot.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${
+    <nav className={`sticky top-0 z-40 transition-all duration-300 ${
       isScrolled ? 'bg-white/80 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-5'
     }`}>
       <div className="container mx-auto px-6 flex items-center justify-between">

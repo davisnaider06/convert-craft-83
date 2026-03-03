@@ -561,7 +561,10 @@ useEffect(() => {
                     viewMode === "mobile" ? "800px" : "calc(100vh - 130px)",
                 }}
               >
-                <div className="w-full h-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-200 relative">
+                <div
+                  data-site-scroll-root="true"
+                  className="w-full h-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-slate-200 relative isolate"
+                >
                   <SiteRenderer data={siteData} viewMode={viewMode} />
                   
                   {/* Marca d'água Sutil */}
