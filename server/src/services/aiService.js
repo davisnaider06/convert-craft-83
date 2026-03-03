@@ -48,6 +48,54 @@ const SECTION_ALIASES = {
   profile_header: "profile-header",
 };
 
+const STYLE_TONE = {
+  moderno: "moderno e direto",
+  minimalista: "minimalista e sofisticado",
+  corporativo: "institucional e confiavel",
+  criativo: "criativo e ousado",
+  profissional: "profissional e persuasivo",
+};
+
+const CATEGORY_PRESETS = {
+  landing: {
+    minSections: 8,
+    maxSections: 10,
+    preferred: ["navbar", "hero", "social-proof", "feature-grid", "testimonial-slider", "pricing-table", "faq-section", "cta-section", "footer-section"],
+  },
+  service: {
+    minSections: 8,
+    maxSections: 10,
+    preferred: ["navbar", "hero", "feature-grid", "social-proof", "testimonial-slider", "pricing-table", "faq-section", "cta-section", "footer-section"],
+  },
+  ecommerce: {
+    minSections: 9,
+    maxSections: 11,
+    preferred: ["navbar", "hero", "social-proof", "product-catalog", "feature-grid", "pricing-table", "testimonial-slider", "faq-section", "cta-section", "footer-section"],
+  },
+  portfolio: {
+    minSections: 7,
+    maxSections: 9,
+    preferred: ["navbar", "hero", "project-gallery", "social-proof", "testimonial-slider", "feature-grid", "cta-section", "footer-section"],
+  },
+  biolink: {
+    minSections: 4,
+    maxSections: 6,
+    preferred: ["profile-header", "social-proof", "link-buttons", "cta-section", "footer-section"],
+  },
+};
+
+const CONTENT_RULES = {
+  navbar: { linksMin: 3 },
+  "feature-grid": { listKey: "features", min: 4, max: 6 },
+  "testimonial-slider": { listKey: "testimonials", min: 3, max: 5 },
+  "pricing-table": { listKey: "plans", min: 3, max: 4 },
+  "faq-section": { listKey: "items", min: 4, max: 6 },
+  "product-catalog": { listKey: "products", min: 4, max: 8 },
+  "project-gallery": { listKey: "projects", min: 4, max: 6 },
+  "link-buttons": { listKey: "links", min: 5, max: 8 },
+  "social-proof": { listKey: "logos", min: 5, max: 10 },
+};
+
 const STOPWORDS = new Set([
   "para", "com", "sem", "uma", "uns", "umas", "que", "por", "dos", "das", "de", "do", "da",
   "the", "and", "you", "seu", "sua", "seus", "suas", "mais", "muito", "sobre", "como", "site", "pagina",
@@ -62,22 +110,26 @@ function isAllowedSection(type) {
   return AVAILABLE_SECTIONS.includes(type);
 }
 
-function getMinSectionsByCategory(category) {
-  const key = String(category || "").toLowerCase();
-  if (key === "ecommerce") return 8;
-  if (key === "service") return 7;
-  if (key === "portfolio") return 6;
-  if (key === "biolink") return 4;
-  return 6;
-}
-
 function categoryRequiredSections(category) {
   const key = String(category || "").toLowerCase();
-  if (key === "ecommerce") return ["hero", "product-catalog", "pricing-table", "faq-section", "cta-section", "footer-section"];
-  if (key === "portfolio") return ["hero", "project-gallery", "cta-section", "footer-section"];
+  if (key === "ecommerce") return ["navbar", "hero", "product-catalog", "pricing-table", "faq-section", "cta-section", "footer-section"];
+  if (key === "portfolio") return ["navbar", "hero", "project-gallery", "cta-section", "footer-section"];
   if (key === "biolink") return ["profile-header", "link-buttons", "footer-section"];
-  if (key === "service") return ["hero", "feature-grid", "testimonial-slider", "cta-section", "footer-section"];
-  return ["hero", "feature-grid", "cta-section", "footer-section"];
+  if (key === "service") return ["navbar", "hero", "feature-grid", "testimonial-slider", "cta-section", "footer-section"];
+  return ["navbar", "hero", "feature-grid", "cta-section", "footer-section"];
+}
+
+function getPreset(category) {
+  const key = String(category || "").toLowerCase();
+  return CATEGORY_PRESETS[key] || CATEGORY_PRESETS.landing;
+}
+
+function uniqOrdered(arr) {
+  return Array.from(new Set((arr || []).filter(Boolean)));
+}
+
+function limitText(text, max) {
+  return String(text || "").trim().slice(0, max);
 }
 
 function extractKeywords(text) {
@@ -93,71 +145,182 @@ function normalizeMustHave(prompt, customizations, mustHave) {
   const base = Array.isArray(mustHave) ? mustHave : [];
   const fromPrompt = String(prompt || "").split(/[.;\n]/).map((x) => x.trim()).filter((x) => x.length > 10);
   const fromCustom = String(customizations || "").split(/[.;\n]/).map((x) => x.trim()).filter((x) => x.length > 10);
-  return Array.from(new Set([...base, ...fromPrompt.slice(0, 6), ...fromCustom.slice(0, 6)])).slice(0, 12);
+  return Array.from(new Set([...base, ...fromPrompt.slice(0, 8), ...fromCustom.slice(0, 8)])).slice(0, 14);
+}
+
+function isPlaceholderText(value) {
+  return String(value || "").includes("__");
+}
+
+function ensureArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function pickPlan({ category, templateBlueprint, plannerRequired }) {
+  const preset = getPreset(category);
+  const byBlueprint = ensureArray(templateBlueprint?.sections).map((s) => normalizeSectionType(s?.type)).filter(isAllowedSection);
+  const byPlanner = ensureArray(plannerRequired).map((s) => normalizeSectionType(s)).filter(isAllowedSection);
+  const required = categoryRequiredSections(category);
+  let merged = uniqOrdered([...preset.preferred, ...byBlueprint, ...byPlanner, ...required]);
+  merged = merged.filter((type) => isAllowedSection(type));
+  if (merged.length < preset.minSections) {
+    for (const fallbackType of preset.preferred) {
+      if (!merged.includes(fallbackType)) merged.push(fallbackType);
+      if (merged.length >= preset.minSections) break;
+    }
+  }
+  return merged.slice(0, preset.maxSections);
 }
 
 function applySectionDefaults(section) {
   const type = normalizeSectionType(section?.type);
   const base = { ...(section || {}), type };
 
-  if (type === "hero") return { ...base, headline: base.headline || "Tecnologia ao seu alcance", subheadline: base.subheadline || "Solucoes personalizadas para acelerar seus resultados.", cta: base.cta || "Quero comecar", image_keyword: base.image_keyword || "business technology" };
-  if (type === "navbar") return { ...base, logo_text: base.logo_text || "Logo", links: Array.isArray(base.links) && base.links.length > 0 ? base.links : [{ label: "Inicio", url: "#inicio" }, { label: "Contato", url: "#contato" }], cta_text: base.cta_text || base.cta || "Comecar" };
-  if (type === "feature-grid") return { ...base, title: base.title || "Diferenciais", features: Array.isArray(base.features) && base.features.length > 0 ? base.features : [{ title: "Performance", description: "Entrega rapida com foco em conversao.", icon: "zap" }, { title: "Confianca", description: "Processos claros e previsiveis.", icon: "shield" }, { title: "Escala", description: "Estrutura pronta para crescimento.", icon: "chart" }] };
-  if (type === "testimonial-slider") return { ...base, title: base.title || "Resultados de clientes", testimonials: Array.isArray(base.testimonials) && base.testimonials.length > 0 ? base.testimonials : [{ name: "Cliente", role: "Empreendedor", content: "Excelente experiencia e resultado.", rating: 5 }] };
-  if (type === "pricing-table") return { ...base, title: base.title || "Planos", plans: Array.isArray(base.plans) && base.plans.length > 0 ? base.plans : [{ name: "Plano principal", price: "R$ 197", features: ["Implementacao", "Suporte"], recommended: true, cta: "Quero este plano" }] };
-  if (type === "faq-section") return { ...base, title: base.title || "Perguntas frequentes", items: Array.isArray(base.items) && base.items.length > 0 ? base.items : [{ question: "Como funciona?", answer: "Nossa equipe cuida da implementacao de ponta a ponta." }] };
-  if (type === "cta-section") return { ...base, title: base.title || "Pronto para avancar?", subtitle: base.subtitle || "Fale com a equipe e receba uma proposta personalizada.", button_text: base.button_text || "Falar agora" };
-  if (type === "product-catalog") return { ...base, title: base.title || "Produtos", products: Array.isArray(base.products) && base.products.length > 0 ? base.products : [{ name: "Produto principal", price: "R$ 99", description: "Descricao do produto.", image_keyword: "product" }] };
-  if (type === "profile-header") return { ...base, name: base.name || "Seu Nome", bio: base.bio || "Criador de conteudo digital.", image_keyword: base.image_keyword || "portrait" };
-  if (type === "link-buttons") return { ...base, links: Array.isArray(base.links) && base.links.length > 0 ? base.links : [{ label: "Meu principal link", url: "#", icon: "link" }] };
-  if (type === "project-gallery") return { ...base, title: base.title || "Projetos", projects: Array.isArray(base.projects) && base.projects.length > 0 ? base.projects : [{ title: "Projeto destaque", description: "Descricao do projeto.", image_keyword: "design project", link: "#" }] };
-  if (type === "social-proof") return { ...base, title: base.title || "Quem confia", logos: Array.isArray(base.logos) && base.logos.length > 0 ? base.logos : ["Cliente A", "Cliente B", "Cliente C"] };
-  if (type === "footer-section") return { ...base, text: base.text || `© ${new Date().getFullYear()} Todos os direitos reservados.`, social_media: Array.isArray(base.social_media) ? base.social_media : [] };
+  if (type === "hero") return { ...base, headline: base.headline || "Cresca com uma estrutura que converte", subheadline: base.subheadline || "Site completo, claro e focado em gerar clientes.", cta: base.cta || "Quero comecar", image_keyword: base.image_keyword || "business growth" };
+  if (type === "navbar") return { ...base, logo_text: base.logo_text || "Sua Marca", links: ensureArray(base.links).length > 0 ? base.links : [{ label: "Inicio", url: "#inicio" }, { label: "Beneficios", url: "#beneficios" }, { label: "Contato", url: "#contato" }], cta_text: base.cta_text || base.cta || "Falar agora" };
+  if (type === "feature-grid") return { ...base, title: base.title || "Por que escolher esta solucao", features: ensureArray(base.features).length > 0 ? base.features : [{ title: "Execucao rapida", description: "Implementacao com foco em resultado real.", icon: "zap" }, { title: "Estrategia clara", description: "Cada etapa orientada a conversao.", icon: "shield" }, { title: "Crescimento continuo", description: "Melhorias baseadas em dados.", icon: "chart" }, { title: "Suporte consultivo", description: "Acompanhamento proximo do time.", icon: "users" }] };
+  if (type === "testimonial-slider") return { ...base, title: base.title || "Quem aplica, recomenda", testimonials: ensureArray(base.testimonials).length > 0 ? base.testimonials : [{ name: "Cliente A", role: "Empreendedora", content: "A estrutura deixou nossa comunicacao muito mais forte e objetiva.", rating: 5 }, { name: "Cliente B", role: "Diretor Comercial", content: "Melhoramos a taxa de conversao e o tempo de fechamento.", rating: 5 }, { name: "Cliente C", role: "Consultora", content: "Fluxo simples e resultado acima do esperado.", rating: 5 }] };
+  if (type === "pricing-table") return { ...base, title: base.title || "Escolha o melhor plano", plans: ensureArray(base.plans).length > 0 ? base.plans : [{ name: "Essencial", price: "R$ 97", features: ["Setup inicial", "Estrutura base", "Suporte por email"], recommended: false, cta: "Comecar" }, { name: "Profissional", price: "R$ 297", features: ["Tudo do Essencial", "Personalizacao completa", "Suporte prioritario"], recommended: true, cta: "Quero o Profissional" }, { name: "Escala", price: "R$ 597", features: ["Tudo do Profissional", "Consultoria dedicada", "Otimizacao mensal"], recommended: false, cta: "Falar com especialista" }] };
+  if (type === "faq-section") return { ...base, title: base.title || "Perguntas frequentes", items: ensureArray(base.items).length > 0 ? base.items : [{ question: "Como funciona o processo?", answer: "Voce envia o briefing, validamos a estrutura e entregamos o site completo." }, { question: "Posso editar depois?", answer: "Sim. Voce pode ajustar secoes, textos e layout quando quiser." }, { question: "Quanto tempo leva?", answer: "A primeira versao sai em minutos e pode ser refinada em ciclos curtos." }, { question: "Serve para qualquer nicho?", answer: "Sim. O fluxo adapta copy e estrutura ao seu objetivo de negocio." }] };
+  if (type === "cta-section") return { ...base, title: base.title || "Pronto para acelerar seus resultados?", subtitle: base.subtitle || "Comece agora com uma pagina estruturada para conversao.", button_text: base.button_text || "Criar meu site" };
+  if (type === "product-catalog") return { ...base, title: base.title || "Produtos em destaque", products: ensureArray(base.products).length > 0 ? base.products : [{ name: "Produto principal", price: "R$ 99", description: "Solução de entrada com alto valor percebido.", image_keyword: "premium product" }, { name: "Produto pro", price: "R$ 199", description: "Mais recursos para quem quer evoluir rapido.", image_keyword: "product package" }, { name: "Combo completo", price: "R$ 299", description: "Oferta com melhor custo-beneficio.", image_keyword: "bundle product" }, { name: "Assinatura", price: "R$ 79", description: "Acesso recorrente com atualizacoes.", image_keyword: "subscription product" }] };
+  if (type === "profile-header") return { ...base, name: base.name || "Seu Nome", bio: base.bio || "Profissional focado em crescimento e resultados.", image_keyword: base.image_keyword || "professional portrait" };
+  if (type === "link-buttons") return { ...base, links: ensureArray(base.links).length > 0 ? base.links : [{ label: "Instagram", url: "#", icon: "instagram" }, { label: "YouTube", url: "#", icon: "youtube" }, { label: "WhatsApp", url: "#", icon: "message" }, { label: "Portifolio", url: "#", icon: "briefcase" }, { label: "Contato", url: "#", icon: "mail" }] };
+  if (type === "project-gallery") return { ...base, title: base.title || "Projetos em destaque", projects: ensureArray(base.projects).length > 0 ? base.projects : [{ title: "Projeto 1", description: "Entrega orientada a conversao e clareza de proposta.", image_keyword: "landing page design", link: "#" }, { title: "Projeto 2", description: "Reposicionamento visual e copy focada em valor.", image_keyword: "web redesign", link: "#" }, { title: "Projeto 3", description: "Fluxo comercial simplificado para gerar mais leads.", image_keyword: "website project", link: "#" }, { title: "Projeto 4", description: "PAgina de servico com oferta objetiva.", image_keyword: "service website", link: "#" }] };
+  if (type === "social-proof") return { ...base, title: base.title || "Marcas e clientes que confiam", logos: ensureArray(base.logos).length > 0 ? base.logos : ["Marca A", "Marca B", "Marca C", "Marca D", "Marca E"] };
+  if (type === "footer-section") return { ...base, text: base.text || `© ${new Date().getFullYear()} Todos os direitos reservados.`, social_media: ensureArray(base.social_media) };
   return base;
 }
 
 function sanitizeCandidate(raw) {
-  const rawSections = Array.isArray(raw?.sections) ? raw.sections : [];
-  const normalizedRaw = rawSections.map((section) => ({ ...section, type: normalizeSectionType(section?.type) })).filter((section) => isAllowedSection(section.type));
+  const rawSections = ensureArray(raw?.sections);
+  const normalizedRaw = rawSections
+    .map((section) => ({ ...section, type: normalizeSectionType(section?.type) }))
+    .filter((section) => isAllowedSection(section.type));
+
   return {
     colors: raw?.colors && typeof raw.colors === "object" ? raw.colors : { primary: "#2563eb", secondary: "#0f172a", accent: "#14b8a6" },
     sections: normalizedRaw.map((section) => applySectionDefaults(section)),
   };
 }
 
-function mergeWithBlueprint(rawSite, blueprint, category) {
-  const sanitized = sanitizeCandidate(rawSite);
-  const merged = [...sanitized.sections];
-  const minSections = getMinSectionsByCategory(category);
-  const blueprintSections = Array.isArray(blueprint?.sections) ? blueprint.sections : [];
-  for (const section of blueprintSections) {
-    const type = normalizeSectionType(section?.type);
-    if (!isAllowedSection(type)) continue;
-    if (merged.some((s) => normalizeSectionType(s.type) === type)) continue;
-    merged.push(applySectionDefaults({ ...section, type }));
-    if (merged.length >= minSections) break;
+function makeListItem(type, index, ctx) {
+  const seed = ctx.mustHave[index] || ctx.keyword;
+  if (type === "feature-grid") return { title: limitText(`${seed} aplicado`, 46), description: `Estrutura pratica para ${ctx.keyword} com foco em conversao.`, icon: index % 2 === 0 ? "zap" : "shield" };
+  if (type === "testimonial-slider") return { name: `Cliente ${index + 1}`, role: "Empreendedor(a)", content: `Conseguimos evoluir ${ctx.keyword} com uma comunicacao muito mais clara e convincente.`, rating: 5 };
+  if (type === "pricing-table") return { name: `Plano ${index + 1}`, price: index === 1 ? "R$ 297" : index === 2 ? "R$ 597" : "R$ 97", features: [`Entrega focada em ${ctx.keyword}`, "Acompanhamento estrategico", "Implementacao pratica"], recommended: index === 1, cta: index === 1 ? "Quero o melhor plano" : "Escolher plano" };
+  if (type === "faq-section") return { question: `Como ${ctx.keyword} funciona na pratica?`, answer: `Organizamos etapas objetivas para implementar ${ctx.keyword} e acompanhar resultado real.` };
+  if (type === "product-catalog") return { name: `Oferta ${index + 1}`, price: index === 0 ? "R$ 99" : "R$ 199", description: `Solução orientada a ${ctx.keyword}.`, image_keyword: `${ctx.keyword} product` };
+  if (type === "project-gallery") return { title: `Case ${index + 1}`, description: `Projeto com foco em ${ctx.keyword} e crescimento comercial.`, image_keyword: `${ctx.keyword} website`, link: "#" };
+  if (type === "link-buttons") return { label: `Link ${index + 1}`, url: "#", icon: index % 2 === 0 ? "link" : "instagram" };
+  if (type === "social-proof") return `Cliente ${index + 1}`;
+  return {};
+}
+
+function enforceDensity(section, ctx) {
+  const rule = CONTENT_RULES[section.type];
+  if (!rule) return section;
+
+  if (section.type === "navbar") {
+    const links = ensureArray(section.links);
+    while (links.length < rule.linksMin) {
+      links.push({ label: `Link ${links.length + 1}`, url: "#" });
+    }
+    return { ...section, links: links.slice(0, 6) };
   }
+
+  const listKey = rule.listKey;
+  const current = ensureArray(section[listKey]);
+  const max = rule.max || rule.min;
+  while (current.length < rule.min) {
+    current.push(makeListItem(section.type, current.length, ctx));
+  }
+  return { ...section, [listKey]: current.slice(0, max) };
+}
+
+function sectionFromTemplate(type, templateBlueprint) {
+  const matched = ensureArray(templateBlueprint?.sections).find((s) => normalizeSectionType(s?.type) === type);
+  return matched ? { ...matched, type } : null;
+}
+
+function sectionScaffold(type, ctx) {
+  if (type === "navbar") return { type, logo_text: "Logo", links: [{ label: "Inicio", url: "#inicio" }, { label: "Servicos", url: "#servicos" }, { label: "Contato", url: "#contato" }], cta_text: "Falar com especialista" };
+  if (type === "hero") return { type, headline: `Transforme ${ctx.keyword} com uma estrutura de alta conversao`, subheadline: `Criamos uma pagina completa para apresentar valor, gerar confianca e aumentar vendas em ${ctx.keyword}.`, cta: "Quero comecar hoje", image_keyword: `${ctx.keyword} business` };
+  if (type === "feature-grid") return { type, title: "Diferenciais principais", features: [] };
+  if (type === "testimonial-slider") return { type, title: "Resultados e experiencias", testimonials: [] };
+  if (type === "pricing-table") return { type, title: "Planos para cada fase", plans: [] };
+  if (type === "faq-section") return { type, title: "Duvidas comuns", items: [] };
+  if (type === "cta-section") return { type, title: "Vamos construir sua proxima pagina?", subtitle: `Comece agora e acelere ${ctx.keyword}.`, button_text: "Iniciar projeto" };
+  if (type === "product-catalog") return { type, title: "Catalogo principal", products: [] };
+  if (type === "profile-header") return { type, name: "Seu Nome", bio: `Especialista em ${ctx.keyword}.`, image_keyword: `${ctx.keyword} portrait` };
+  if (type === "link-buttons") return { type, links: [] };
+  if (type === "project-gallery") return { type, title: "Projetos", projects: [] };
+  if (type === "social-proof") return { type, title: "Empresas atendidas", logos: [] };
+  if (type === "footer-section") return { type, text: `© ${new Date().getFullYear()} Todos os direitos reservados.`, social_media: [] };
+  return { type };
+}
+
+function composeFinalSite(rawSite, { category, style, mustHave, userPrompt, templateBlueprint, sectionPlan }) {
+  const sanitized = sanitizeCandidate(rawSite);
+  const tone = STYLE_TONE[String(style || "").toLowerCase()] || STYLE_TONE.profissional;
+  const keyword = extractKeywords(userPrompt)[0] || "seu negocio";
+  const ctx = { keyword, mustHave, tone };
+
+  const existingByType = {};
+  for (const section of sanitized.sections) {
+    const type = normalizeSectionType(section?.type);
+    if (!existingByType[type]) existingByType[type] = section;
+  }
+
+  const plannedSections = [];
+  for (const type of sectionPlan) {
+    const current = existingByType[type] || sectionFromTemplate(type, templateBlueprint) || sectionScaffold(type, ctx);
+    const merged = applySectionDefaults({ ...current, type });
+    const dense = enforceDensity(merged, ctx);
+    plannedSections.push(dense);
+  }
+
+  const extras = sanitized.sections.filter((s) => !sectionPlan.includes(normalizeSectionType(s?.type))).slice(0, 2);
+
   return {
-    colors: sanitized.colors || blueprint?.colors || { primary: "#2563eb", secondary: "#0f172a", accent: "#14b8a6" },
-    sections: merged,
+    colors: sanitized.colors || templateBlueprint?.colors || { primary: "#2563eb", secondary: "#0f172a", accent: "#14b8a6" },
+    metadata: { tone, category },
+    sections: [...plannedSections, ...extras],
   };
 }
 
-function validateSiteQuality(site, { category, mustHave, userPrompt }) {
+function validateSiteQuality(site, { category, mustHave, userPrompt, sectionPlan }) {
   const issues = [];
   if (!site || !Array.isArray(site.sections) || site.sections.length === 0) issues.push("Sem secoes.");
-  const sectionTypes = Array.isArray(site?.sections) ? site.sections.map((s) => normalizeSectionType(s?.type)).filter(Boolean) : [];
-  if (sectionTypes.length < getMinSectionsByCategory(category)) issues.push("Quantidade de secoes insuficiente.");
-  for (const t of categoryRequiredSections(category)) if (!sectionTypes.includes(t)) issues.push(`Secao obrigatoria ausente: ${t}.`);
+
+  const sectionTypes = ensureArray(site?.sections).map((s) => normalizeSectionType(s?.type)).filter(Boolean);
+  const required = categoryRequiredSections(category);
+  for (const t of required) if (!sectionTypes.includes(t)) issues.push(`Secao obrigatoria ausente: ${t}.`);
+  for (const t of sectionPlan) if (!sectionTypes.includes(t)) issues.push(`Secao planejada ausente: ${t}.`);
+
   const serial = JSON.stringify(site).toLowerCase();
   if (serial.includes("__")) issues.push("Placeholders nao resolvidos.");
+  if (serial.includes("lorem ipsum")) issues.push("Texto placeholder detectado.");
+
+  for (const [type, rule] of Object.entries(CONTENT_RULES)) {
+    const section = ensureArray(site.sections).find((s) => normalizeSectionType(s?.type) === type);
+    if (!section) continue;
+    if (rule.linksMin) {
+      if (ensureArray(section.links).length < rule.linksMin) issues.push(`Conteudo fraco em ${type}.`);
+      continue;
+    }
+    const size = ensureArray(section[rule.listKey]).length;
+    if (size < rule.min) issues.push(`Conteudo insuficiente em ${type}.`);
+  }
+
   const tokens = extractKeywords(`${mustHave.join(" ")} ${userPrompt || ""}`);
   const missing = tokens.slice(0, 20).filter((t) => !serial.includes(t));
-  if (missing.length > 10) issues.push("Cobertura baixa do briefing.");
+  if (missing.length > 11) issues.push("Cobertura baixa do briefing.");
+
   return { valid: issues.length === 0, issues };
 }
 
-async function generateJsonWithGemini({ systemPrompt, userPrompt, temperature = 0.9 }) {
+async function generateJsonWithGemini({ systemPrompt, userPrompt, temperature = 0.8 }) {
   if (geminiDisabled) return null;
   const geminiModels = ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"];
   for (const modelName of geminiModels) {
@@ -183,7 +346,7 @@ async function generateJsonWithGemini({ systemPrompt, userPrompt, temperature = 
   return null;
 }
 
-async function generateJsonWithGroq({ systemPrompt, userPrompt, temperature = 0.9 }) {
+async function generateJsonWithGroq({ systemPrompt, userPrompt, temperature = 0.8 }) {
   if (groqDisabled || !groq) return null;
   try {
     const completion = await groq.chat.completions.create({
@@ -207,35 +370,37 @@ async function generateJsonWithFallback(params) {
   return generateJsonWithGroq(params);
 }
 
-function buildPlannerFallback({ category, mustHave }) {
-  const required = categoryRequiredSections(category);
+function buildPlannerFallback({ category, mustHave, sectionPlan }) {
   return {
-    objective: "converter visitantes em leads/clientes",
-    required_sections: required,
+    objective: "converter visitantes em leads ou vendas",
+    required_sections: sectionPlan || categoryRequiredSections(category),
     must_cover_items: mustHave,
   };
 }
 
-function buildHeuristicSite({ userPrompt, category, templateBlueprint, mustHave }) {
-  const keyword = extractKeywords(userPrompt)[0] || "seu negocio";
-  const required = categoryRequiredSections(category);
-  const sections = required.map((type) => {
-    if (type === "hero") return { type, headline: `Solucao completa para ${keyword}`, subheadline: String(userPrompt || "").slice(0, 160), cta: "Quero comecar agora", image_keyword: `${keyword} professional` };
-    if (type === "feature-grid") return { type, title: "Diferenciais", features: (mustHave.slice(0, 4).length ? mustHave.slice(0, 4) : ["Atendimento especializado", "Processo claro", "Resultado mensuravel", "Suporte rapido"]).map((m, idx) => ({ title: String(m).slice(0, 48), description: `Aplicacao pratica para ${keyword}.`, icon: idx % 2 === 0 ? "zap" : "shield" })) };
-    if (type === "testimonial-slider") return { type, title: "Resultados reais", testimonials: [{ name: "Cliente 1", role: "Empreendedor", content: "Experiencia excelente e resultado rapido.", rating: 5 }] };
-    if (type === "pricing-table") return { type, title: "Planos", plans: [{ name: "Essencial", price: "R$ 97", features: ["Setup inicial", "Suporte"], recommended: false, cta: "Comecar" }, { name: "Pro", price: "R$ 297", features: ["Tudo do Essencial", "Otimizacao"], recommended: true, cta: "Escolher Pro" }] };
-    if (type === "faq-section") return { type, title: "Perguntas frequentes", items: [{ question: "Como funciona?", answer: "Voce preenche o briefing e recebe uma estrutura completa em minutos." }, { question: "Posso editar?", answer: "Sim, voce pode refinar texto, visual e secoes quando quiser." }] };
-    if (type === "cta-section") return { type, title: "Pronto para avancar?", subtitle: "Comece agora e publique seu site.", button_text: "Criar meu site" };
-    if (type === "product-catalog") return { type, title: "Produtos", products: [{ name: "Produto principal", price: "R$ 99", description: "Descricao orientada a conversao.", image_keyword: "product premium" }, { name: "Kit completo", price: "R$ 199", description: "Pacote com melhor custo-beneficio.", image_keyword: "product kit" }] };
-    if (type === "project-gallery") return { type, title: "Projetos", projects: [{ title: "Projeto destaque", description: "Caso com foco em impacto e conversao.", image_keyword: "design project", link: "#" }] };
-    if (type === "profile-header") return { type, name: "Criador(a)", bio: String(userPrompt || "").slice(0, 120), image_keyword: "portrait creator" };
-    if (type === "link-buttons") return { type, links: [{ label: "Link principal", url: "#", icon: "link" }, { label: "Instagram", url: "#", icon: "instagram" }] };
-    if (type === "social-proof") return { type, title: "Quem confia", logos: ["Cliente A", "Cliente B", "Cliente C"] };
-    if (type === "footer-section") return { type, text: `© ${new Date().getFullYear()} Todos os direitos reservados.`, social_media: [] };
-    if (type === "navbar") return { type, logo_text: "Logo", links: [{ label: "Inicio", url: "#inicio" }, { label: "Contato", url: "#contato" }], cta_text: "Falar agora" };
-    return { type };
-  });
-  return mergeWithBlueprint({ colors: templateBlueprint?.colors, sections }, templateBlueprint, category);
+function buildHeuristicSite({ userPrompt, category, style, templateBlueprint, mustHave, sectionPlan }) {
+  const raw = {
+    colors: templateBlueprint?.colors || { primary: "#2563eb", secondary: "#0f172a", accent: "#14b8a6" },
+    sections: sectionPlan.map((type) => sectionScaffold(type, { keyword: extractKeywords(userPrompt)[0] || "seu negocio", mustHave, tone: STYLE_TONE[String(style || "").toLowerCase()] || STYLE_TONE.profissional })),
+  };
+  return composeFinalSite(raw, { category, style, mustHave, userPrompt, templateBlueprint, sectionPlan });
+}
+
+function plannerPromptContext(sectionPlan, mustHave) {
+  return `
+Plan de secoes ideal (ordem sugerida): ${sectionPlan.join(" -> ")}
+Requisitos de densidade:
+- navbar.links >= 3
+- feature-grid.features >= 4
+- testimonial-slider.testimonials >= 3
+- pricing-table.plans >= 3
+- faq-section.items >= 4
+- product-catalog.products >= 4
+- project-gallery.projects >= 4
+- link-buttons.links >= 5
+- social-proof.logos >= 5
+Itens obrigatorios de briefing: ${mustHave.join(" | ") || "nenhum"}
+`.trim();
 }
 
 async function gerarSite(prompt, templateId, generationContext = null) {
@@ -246,58 +411,84 @@ async function gerarSite(prompt, templateId, generationContext = null) {
   const mustHave = normalizeMustHave(userPrompt, customizations, generationContext?.mustHave || []);
   const templateBlueprint = getTemplateBlueprint(templateId, category);
 
-  const plannerSystem = "Voce e um planner de landing pages. Responda somente JSON valido.";
+  const provisionalPlan = pickPlan({
+    category,
+    templateBlueprint,
+    plannerRequired: ensureArray(generationContext?.required_sections),
+  });
+
+  const plannerSystem = "Voce e um estrategista de paginas de alta conversao. Responda apenas JSON valido.";
   const plannerUser = `
-Retorne JSON: { "required_sections": ["..."], "must_cover_items": ["..."] }.
+Retorne JSON:
+{
+  "required_sections": ["..."],
+  "must_cover_items": ["..."],
+  "page_goal": "..."
+}
 Use somente sections permitidas: [${AVAILABLE_SECTIONS.join(", ")}].
+${plannerPromptContext(provisionalPlan, mustHave)}
 Categoria: ${category}
-Estilo: ${style}
-Prompt: ${userPrompt}
+Estilo visual: ${style}
+Prompt do usuario: ${userPrompt}
 Customizacoes: ${customizations || "nenhuma"}
-Requisitos: ${mustHave.join(" | ") || "nenhum"}
 `.trim();
 
-  const plannerResult = await generateJsonWithFallback({ systemPrompt: plannerSystem, userPrompt: plannerUser, temperature: 0.7 });
-  const planner = plannerResult && typeof plannerResult === "object" ? plannerResult : buildPlannerFallback({ category, mustHave });
+  const plannerResult = await generateJsonWithFallback({ systemPrompt: plannerSystem, userPrompt: plannerUser, temperature: 0.55 });
+  const planner = plannerResult && typeof plannerResult === "object"
+    ? plannerResult
+    : buildPlannerFallback({ category, mustHave, sectionPlan: provisionalPlan });
 
-  const composerSystem = "Voce gera JSON de site. Responda somente JSON valido.";
+  const sectionPlan = pickPlan({
+    category,
+    templateBlueprint,
+    plannerRequired: ensureArray(planner.required_sections),
+  });
+
+  const composerSystem = "Voce gera JSON de website usando biblioteca de componentes. Responda somente JSON valido.";
   const composerUser = `
-Saida obrigatoria: { "colors": {...}, "sections": [...] }.
-Use somente sections permitidas: [${AVAILABLE_SECTIONS.join(", ")}].
-Cubra 100% do briefing.
-Sem placeholders (__...__) e sem markdown.
-Categoria: ${category}
-Prompt usuario: ${userPrompt}
+Saida obrigatoria:
+{
+  "colors": { "primary": "#hex", "secondary": "#hex", "accent": "#hex" },
+  "sections": [ ... ]
+}
+Regras:
+- Use somente sections permitidas: [${AVAILABLE_SECTIONS.join(", ")}]
+- Nao use markdown, comentarios ou placeholders com "__"
+- Preencha copy real de negocio em tom ${STYLE_TONE[String(style || "").toLowerCase()] || STYLE_TONE.profissional}
+- Siga esta ordem de secoes preferencialmente: ${sectionPlan.join(" -> ")}
+${plannerPromptContext(sectionPlan, mustHave)}
+Briefing do usuario: ${userPrompt}
 Customizacoes: ${customizations || "nenhuma"}
-Plano: ${JSON.stringify(planner)}
-Blueprint: ${JSON.stringify(templateBlueprint)}
+Plano do estrategista: ${JSON.stringify(planner)}
+Blueprint base: ${JSON.stringify(templateBlueprint)}
 `.trim();
 
-  const composed = await generateJsonWithFallback({ systemPrompt: composerSystem, userPrompt: composerUser, temperature: 0.95 });
+  const composed = await generateJsonWithFallback({ systemPrompt: composerSystem, userPrompt: composerUser, temperature: 0.82 });
   if (!composed) {
-    return buildHeuristicSite({ userPrompt, category, templateBlueprint, mustHave });
+    return buildHeuristicSite({ userPrompt, category, style, templateBlueprint, mustHave, sectionPlan });
   }
 
-  let candidate = mergeWithBlueprint(composed, templateBlueprint, category);
-  let validation = validateSiteQuality(candidate, { category, mustHave, userPrompt });
+  let candidate = composeFinalSite(composed, { category, style, mustHave, userPrompt, templateBlueprint, sectionPlan });
+  let validation = validateSiteQuality(candidate, { category, mustHave, userPrompt, sectionPlan });
 
   if (!validation.valid) {
     const repairUser = `
-Corrija o JSON abaixo para ficar completo e valido.
+Corrija o JSON abaixo mantendo o briefing e as regras.
 Problemas: ${validation.issues.join(" | ")}
-Categoria: ${category}
+Ordem de secoes alvo: ${sectionPlan.join(" -> ")}
+Retorne somente JSON no formato: { "colors": {...}, "sections": [...] }.
 JSON atual: ${JSON.stringify(candidate)}
-Retorne somente JSON { "colors": {...}, "sections": [...] }.
 `.trim();
-    const repaired = await generateJsonWithFallback({ systemPrompt: composerSystem, userPrompt: repairUser, temperature: 0.55 });
+
+    const repaired = await generateJsonWithFallback({ systemPrompt: composerSystem, userPrompt: repairUser, temperature: 0.45 });
     if (repaired) {
-      candidate = mergeWithBlueprint(repaired, templateBlueprint, category);
-      validation = validateSiteQuality(candidate, { category, mustHave, userPrompt });
+      candidate = composeFinalSite(repaired, { category, style, mustHave, userPrompt, templateBlueprint, sectionPlan });
+      validation = validateSiteQuality(candidate, { category, mustHave, userPrompt, sectionPlan });
     }
   }
 
   if (!validation.valid) {
-    return buildHeuristicSite({ userPrompt, category, templateBlueprint, mustHave });
+    return buildHeuristicSite({ userPrompt, category, style, templateBlueprint, mustHave, sectionPlan });
   }
 
   return candidate;
