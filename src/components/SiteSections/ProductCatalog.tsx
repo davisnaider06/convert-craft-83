@@ -28,10 +28,20 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({ content, primary
           {content.products.map((product: Product, i: number) => (
             <div key={i} className="bg-white rounded-3xl overflow-hidden shadow-md border border-slate-100 group">
               <div className="aspect-square bg-slate-200 overflow-hidden">
+                {(() => {
+                  const seed = encodeURIComponent(product.image_keyword || product.name || `product-${i + 1}`);
+                  const url = `https://picsum.photos/seed/${seed}/600/600`;
+                  return (
                 <img 
-                  src={`https://source.unsplash.com/600x600/?${encodeURIComponent(product.image_keyword || 'product')}`} 
+                  src={url}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  alt={product.name || "Produto"}
+                  onError={(e) => {
+                    e.currentTarget.src = "https://picsum.photos/600/600";
+                  }}
                 />
+                  );
+                })()}
               </div>
               <div className="p-6">
                 <h3 className="font-bold text-xl mb-2">{product.name}</h3>

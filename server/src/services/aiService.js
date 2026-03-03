@@ -84,6 +84,28 @@ const CATEGORY_PRESETS = {
   },
 };
 
+const TEMPLATE_PLAN_BY_ID = {
+  "vendas-agressivo": ["navbar", "hero", "social-proof", "feature-grid", "testimonial-slider", "pricing-table", "faq-section", "cta-section", "footer-section"],
+  "lead-capture": ["navbar", "hero", "feature-grid", "testimonial-slider", "faq-section", "cta-section", "footer-section"],
+  "portfolio-criativo": ["navbar", "hero", "project-gallery", "feature-grid", "testimonial-slider", "cta-section", "footer-section"],
+  "biolink-influencer": ["profile-header", "social-proof", "link-buttons", "cta-section", "footer-section"],
+  "servico-premium": ["navbar", "hero", "feature-grid", "social-proof", "testimonial-slider", "pricing-table", "faq-section", "cta-section", "footer-section"],
+  "produto-digital": ["navbar", "hero", "social-proof", "product-catalog", "feature-grid", "pricing-table", "testimonial-slider", "faq-section", "cta-section", "footer-section"],
+  "evento-lancamento": ["navbar", "hero", "feature-grid", "social-proof", "testimonial-slider", "faq-section", "cta-section", "footer-section"],
+  "empresa-institucional": ["navbar", "hero", "feature-grid", "social-proof", "testimonial-slider", "faq-section", "cta-section", "footer-section"],
+};
+
+const TEMPLATE_VISUAL_PROFILE = {
+  "vendas-agressivo": "conversion",
+  "lead-capture": "lead",
+  "portfolio-criativo": "portfolio",
+  "biolink-influencer": "biolink",
+  "servico-premium": "premium",
+  "produto-digital": "catalog",
+  "evento-lancamento": "event",
+  "empresa-institucional": "corporate",
+};
+
 const CONTENT_RULES = {
   navbar: { linksMin: 3 },
   "feature-grid": { listKey: "features", min: 4, max: 6 },
@@ -94,6 +116,14 @@ const CONTENT_RULES = {
   "project-gallery": { listKey: "projects", min: 4, max: 6 },
   "link-buttons": { listKey: "links", min: 5, max: 8 },
   "social-proof": { listKey: "logos", min: 5, max: 10 },
+};
+
+const FEATURE_ICONS_BY_CATEGORY = {
+  landing: ["zap", "shield", "chart", "users", "star", "layout"],
+  service: ["briefcase", "award", "users", "shield", "chart", "message"],
+  ecommerce: ["shoppingbag", "shield", "zap", "chart", "star", "globe"],
+  portfolio: ["layout", "briefcase", "award", "star", "users", "globe"],
+  biolink: ["instagram", "youtube", "twitter", "link", "mail", "smartphone"],
 };
 
 const STOPWORDS = new Set([
@@ -156,12 +186,13 @@ function ensureArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
-function pickPlan({ category, templateBlueprint, plannerRequired }) {
+function pickPlan({ category, templateId, templateBlueprint, plannerRequired }) {
   const preset = getPreset(category);
+  const byTemplate = TEMPLATE_PLAN_BY_ID[templateId] || [];
   const byBlueprint = ensureArray(templateBlueprint?.sections).map((s) => normalizeSectionType(s?.type)).filter(isAllowedSection);
   const byPlanner = ensureArray(plannerRequired).map((s) => normalizeSectionType(s)).filter(isAllowedSection);
   const required = categoryRequiredSections(category);
-  let merged = uniqOrdered([...preset.preferred, ...byBlueprint, ...byPlanner, ...required]);
+  let merged = uniqOrdered([...byTemplate, ...preset.preferred, ...byBlueprint, ...byPlanner, ...required]);
   merged = merged.filter((type) => isAllowedSection(type));
   if (merged.length < preset.minSections) {
     for (const fallbackType of preset.preferred) {
@@ -206,7 +237,14 @@ function sanitizeCandidate(raw) {
 
 function makeListItem(type, index, ctx) {
   const seed = ctx.mustHave[index] || ctx.keyword;
-  if (type === "feature-grid") return { title: limitText(`${seed} aplicado`, 46), description: `Estrutura pratica para ${ctx.keyword} com foco em conversao.`, icon: index % 2 === 0 ? "zap" : "shield" };
+  if (type === "feature-grid") {
+    const pool = FEATURE_ICONS_BY_CATEGORY[ctx.category] || FEATURE_ICONS_BY_CATEGORY.landing;
+    return {
+      title: limitText(`${seed} aplicado`, 46),
+      description: `Estrutura pratica para ${ctx.keyword} com foco em conversao.`,
+      icon: pool[index % pool.length],
+    };
+  }
   if (type === "testimonial-slider") return { name: `Cliente ${index + 1}`, role: "Empreendedor(a)", content: `Conseguimos evoluir ${ctx.keyword} com uma comunicacao muito mais clara e convincente.`, rating: 5 };
   if (type === "pricing-table") return { name: `Plano ${index + 1}`, price: index === 1 ? "R$ 297" : index === 2 ? "R$ 597" : "R$ 97", features: [`Entrega focada em ${ctx.keyword}`, "Acompanhamento estrategico", "Implementacao pratica"], recommended: index === 1, cta: index === 1 ? "Quero o melhor plano" : "Escolher plano" };
   if (type === "faq-section") return { question: `Como ${ctx.keyword} funciona na pratica?`, answer: `Organizamos etapas objetivas para implementar ${ctx.keyword} e acompanhar resultado real.` };
@@ -260,11 +298,11 @@ function sectionScaffold(type, ctx) {
   return { type };
 }
 
-function composeFinalSite(rawSite, { category, style, mustHave, userPrompt, templateBlueprint, sectionPlan }) {
+function composeFinalSite(rawSite, { category, style, templateId, mustHave, userPrompt, templateBlueprint, sectionPlan }) {
   const sanitized = sanitizeCandidate(rawSite);
   const tone = STYLE_TONE[String(style || "").toLowerCase()] || STYLE_TONE.profissional;
   const keyword = extractKeywords(userPrompt)[0] || "seu negocio";
-  const ctx = { keyword, mustHave, tone };
+  const ctx = { keyword, mustHave, tone, category };
 
   const existingByType = {};
   for (const section of sanitized.sections) {
@@ -273,18 +311,22 @@ function composeFinalSite(rawSite, { category, style, mustHave, userPrompt, temp
   }
 
   const plannedSections = [];
+  const visualVariant = TEMPLATE_VISUAL_PROFILE[templateId] || String(category || "landing");
   for (const type of sectionPlan) {
     const current = existingByType[type] || sectionFromTemplate(type, templateBlueprint) || sectionScaffold(type, ctx);
     const merged = applySectionDefaults({ ...current, type });
     const dense = enforceDensity(merged, ctx);
-    plannedSections.push(dense);
+    plannedSections.push({ ...dense, visual_variant: dense.visual_variant || visualVariant });
   }
 
-  const extras = sanitized.sections.filter((s) => !sectionPlan.includes(normalizeSectionType(s?.type))).slice(0, 2);
+  const extras = sanitized.sections
+    .filter((s) => !sectionPlan.includes(normalizeSectionType(s?.type)))
+    .slice(0, 2)
+    .map((s) => ({ ...s, visual_variant: s.visual_variant || visualVariant }));
 
   return {
     colors: sanitized.colors || templateBlueprint?.colors || { primary: "#2563eb", secondary: "#0f172a", accent: "#14b8a6" },
-    metadata: { tone, category },
+    metadata: { tone, category, templateId, visual_variant: visualVariant },
     sections: [...plannedSections, ...extras],
   };
 }
@@ -378,12 +420,12 @@ function buildPlannerFallback({ category, mustHave, sectionPlan }) {
   };
 }
 
-function buildHeuristicSite({ userPrompt, category, style, templateBlueprint, mustHave, sectionPlan }) {
+function buildHeuristicSite({ userPrompt, category, style, templateId, templateBlueprint, mustHave, sectionPlan }) {
   const raw = {
     colors: templateBlueprint?.colors || { primary: "#2563eb", secondary: "#0f172a", accent: "#14b8a6" },
     sections: sectionPlan.map((type) => sectionScaffold(type, { keyword: extractKeywords(userPrompt)[0] || "seu negocio", mustHave, tone: STYLE_TONE[String(style || "").toLowerCase()] || STYLE_TONE.profissional })),
   };
-  return composeFinalSite(raw, { category, style, mustHave, userPrompt, templateBlueprint, sectionPlan });
+  return composeFinalSite(raw, { category, style, templateId, mustHave, userPrompt, templateBlueprint, sectionPlan });
 }
 
 function plannerPromptContext(sectionPlan, mustHave) {
@@ -413,6 +455,7 @@ async function gerarSite(prompt, templateId, generationContext = null) {
 
   const provisionalPlan = pickPlan({
     category,
+    templateId,
     templateBlueprint,
     plannerRequired: ensureArray(generationContext?.required_sections),
   });
@@ -440,6 +483,7 @@ Customizacoes: ${customizations || "nenhuma"}
 
   const sectionPlan = pickPlan({
     category,
+    templateId,
     templateBlueprint,
     plannerRequired: ensureArray(planner.required_sections),
   });
@@ -465,10 +509,10 @@ Blueprint base: ${JSON.stringify(templateBlueprint)}
 
   const composed = await generateJsonWithFallback({ systemPrompt: composerSystem, userPrompt: composerUser, temperature: 0.82 });
   if (!composed) {
-    return buildHeuristicSite({ userPrompt, category, style, templateBlueprint, mustHave, sectionPlan });
+    return buildHeuristicSite({ userPrompt, category, style, templateId, templateBlueprint, mustHave, sectionPlan });
   }
 
-  let candidate = composeFinalSite(composed, { category, style, mustHave, userPrompt, templateBlueprint, sectionPlan });
+  let candidate = composeFinalSite(composed, { category, style, templateId, mustHave, userPrompt, templateBlueprint, sectionPlan });
   let validation = validateSiteQuality(candidate, { category, mustHave, userPrompt, sectionPlan });
 
   if (!validation.valid) {
@@ -482,13 +526,13 @@ JSON atual: ${JSON.stringify(candidate)}
 
     const repaired = await generateJsonWithFallback({ systemPrompt: composerSystem, userPrompt: repairUser, temperature: 0.45 });
     if (repaired) {
-      candidate = composeFinalSite(repaired, { category, style, mustHave, userPrompt, templateBlueprint, sectionPlan });
+      candidate = composeFinalSite(repaired, { category, style, templateId, mustHave, userPrompt, templateBlueprint, sectionPlan });
       validation = validateSiteQuality(candidate, { category, mustHave, userPrompt, sectionPlan });
     }
   }
 
   if (!validation.valid) {
-    return buildHeuristicSite({ userPrompt, category, style, templateBlueprint, mustHave, sectionPlan });
+    return buildHeuristicSite({ userPrompt, category, style, templateId, templateBlueprint, mustHave, sectionPlan });
   }
 
   return candidate;

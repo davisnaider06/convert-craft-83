@@ -7,6 +7,7 @@ interface NavbarProps {
     logo_text?: string;
     links: { label: string; url: string }[];
     cta_text?: string;
+    visual_variant?: string;
   };
   primaryColor: string;
 }
@@ -25,6 +26,15 @@ export const Navbar: React.FC<NavbarProps> = ({ content, primaryColor }) => {
     label: asText(link?.label, `Link ${i + 1}`),
     url: asText(link?.url, "#"),
   }));
+  const variant = String(content?.visual_variant || "").toLowerCase();
+  const navTone =
+    variant === "portfolio"
+      ? "bg-slate-950/80 text-white border-slate-800"
+      : variant === "premium"
+        ? "bg-slate-900/80 text-amber-50 border-amber-200/20"
+        : variant === "event"
+          ? "bg-indigo-950/80 text-indigo-50 border-indigo-200/20"
+          : "bg-white/80 text-slate-900 border-slate-200";
 
   useEffect(() => {
     const scrollRoot = document.querySelector('[data-site-scroll-root="true"]');
@@ -41,7 +51,7 @@ export const Navbar: React.FC<NavbarProps> = ({ content, primaryColor }) => {
 
   return (
     <nav className={`sticky top-0 z-40 transition-all duration-300 ${
-      isScrolled ? 'bg-white/80 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-5'
+      isScrolled ? `${navTone} backdrop-blur-md shadow-sm py-3 border-b` : 'bg-transparent py-5'
     }`}>
       <div className="container mx-auto px-6 flex items-center justify-between">
         <div className="flex items-center gap-2 font-bold text-xl" style={{ color: isScrolled ? '#0f172a' : primaryColor }}>
@@ -51,7 +61,7 @@ export const Navbar: React.FC<NavbarProps> = ({ content, primaryColor }) => {
 
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link, i) => (
-            <a key={i} href={link.url} className="text-sm font-medium hover:opacity-70 transition-opacity text-slate-600">
+            <a key={i} href={link.url} className={`text-sm font-medium hover:opacity-70 transition-opacity ${variant === "portfolio" || variant === "premium" || variant === "event" ? "text-slate-100" : "text-slate-600"}`}>
               {link.label}
             </a>
           ))}

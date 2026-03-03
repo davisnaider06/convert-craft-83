@@ -11,13 +11,20 @@ interface ProfileHeaderProps {
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ content, primaryColor, isMobile }) => {
+  const seed = encodeURIComponent(content.image_keyword || content.name || "profile");
+  const profileImage = `https://picsum.photos/seed/${seed}/400/400`;
+
   return (
     <section className="pt-16 pb-8 px-4 text-center">
       <div className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-white shadow-lg overflow-hidden bg-slate-100"
            style={{ borderColor: primaryColor }}>
          <img 
-           src={`https://source.unsplash.com/400x400/?${encodeURIComponent(content.image_keyword || 'portrait')}`} 
+           src={profileImage}
            className="w-full h-full object-cover" 
+           alt={content.name || "Perfil"}
+           onError={(e) => {
+             e.currentTarget.src = "https://picsum.photos/400/400";
+           }}
          />
       </div>
       <h1 className="text-2xl font-bold mb-2">{content.name}</h1>

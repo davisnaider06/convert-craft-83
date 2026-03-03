@@ -12,6 +12,7 @@ interface TestimonialSliderProps {
   content: {
     title?: string;
     testimonials: Testimonial[];
+    visual_variant?: string;
   };
   primaryColor: string;
   isMobile: boolean;
@@ -19,9 +20,18 @@ interface TestimonialSliderProps {
 
 export const TestimonialSlider: React.FC<TestimonialSliderProps> = ({ content, primaryColor, isMobile }) => {
   if (!content.testimonials || content.testimonials.length === 0) return null;
+  const variant = String(content.visual_variant || "").toLowerCase();
+  const sectionBg =
+    variant === "event"
+      ? "bg-gradient-to-r from-indigo-950 to-fuchsia-900"
+      : variant === "portfolio"
+        ? "bg-slate-950"
+        : variant === "premium"
+          ? "bg-slate-900"
+          : "bg-slate-900";
 
   return (
-    <section className="py-24 bg-slate-900 text-white overflow-hidden">
+    <section className={`py-24 ${sectionBg} text-white overflow-hidden`}>
       <div className="container mx-auto px-4 max-w-6xl">
         <h2 className={`font-bold text-center mb-16 ${isMobile ? "text-3xl" : "text-3xl md:text-4xl"}`}>
           {content.title || "O que dizem nossos clientes"}

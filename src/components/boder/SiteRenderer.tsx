@@ -62,9 +62,17 @@ export function SiteRenderer({ data, viewMode = "desktop" }: { data: any, viewMo
 
   const primaryColor = data.colors?.primary || "#3b82f6";
   const isMobile = viewMode === "mobile";
+  const visualVariant = String(data?.metadata?.visual_variant || data?.metadata?.category || "").toLowerCase();
+  const typographyClass = visualVariant === "premium" ? "font-serif" : "font-sans";
+  const canvasToneClass =
+    visualVariant === "portfolio"
+      ? "bg-slate-950 text-slate-100"
+      : visualVariant === "event"
+        ? "bg-gradient-to-b from-indigo-950 to-fuchsia-950 text-white"
+        : "bg-white text-slate-900";
 
   return (
-    <div className={`min-h-screen bg-white text-slate-900 font-sans w-full overflow-x-hidden ${isMobile ? 'max-w-[375px] mx-auto shadow-2xl' : ''}`}>
+    <div className={`min-h-screen ${canvasToneClass} ${typographyClass} w-full overflow-x-hidden ${isMobile ? 'max-w-[375px] mx-auto shadow-2xl' : ''}`}>
       
       {/* O SiteRenderer agora é apenas um distribuidor (Dispatcher) */}
      {data.sections.map((section: any, index: number) => {
