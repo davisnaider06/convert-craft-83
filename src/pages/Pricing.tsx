@@ -23,6 +23,7 @@ import {
 import boderLogo from "@/assets/boder-logo.png";
 import BlurText from "@/components/ui/BlurText";
 import { ShinyButton } from "@/components/ui/ShinyButton";
+import { readApiResponse, useApiClient } from "@/lib/apiClient";
 
 const plans = [
   {
@@ -110,6 +111,7 @@ export default function Pricing() {
   // --- MUDANÇA: Usando Hooks do Clerk ---
   const { user, isSignedIn } = useUser();
   const { openSignIn } = useClerk();
+  const { apiFetch } = useApiClient();
   
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
@@ -133,18 +135,27 @@ export default function Pricing() {
       return;
     }
 
-    // 3. Simulação de Checkout (Integração futura com Stripe)
+    // 3. Checkout real via backend (Rise Pay)
     setLoadingPlan(planId);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await apiFetch("/api/payments/checkout", {
+        method: "POST",
+        body: JSON.stringify({
+          kind: "subscription",
+          planId,
+          userEmail: user?.primaryEmailAddress?.emailAddress,
+        }),
+      });
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao iniciar checkout");
+
+      const checkoutUrl = parsed.data?.checkoutUrl;
+      if (!checkoutUrl) throw new Error("Gateway nao retornou URL de checkout");
+
       premiumToast.success("Redirecionando...", "Abrindo gateway de pagamento seguro.");
-      
-      setTimeout(() => {
-        // Link fake para simular checkout
-        window.open("https://google.com", "_blank"); 
-        setLoadingPlan(null);
-      }, 1000);
+      window.open(checkoutUrl, "_blank");
+      setLoadingPlan(null);
 
     } catch (err) {
       console.error("Checkout error:", err);
@@ -593,3 +604,5 @@ export default function Pricing() {
     </div>
   );
 }
+
+
