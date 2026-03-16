@@ -21,7 +21,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ content, primaryColor })
   if (items.length === 0) return null;
 
   const variant = String(content.visual_variant || "").toLowerCase();
-  const dark = variant === "portfolio" || variant === "premium";
+  const dark = variant === "portfolio" || variant === "premium" || variant === "conversion";
   const sectionBg = dark ? "bg-slate-950" : "bg-white";
   const cardClass = dark ? "bg-slate-900 border-slate-700" : "bg-white";
   const titleClass = dark ? "text-slate-50" : "text-slate-900";
