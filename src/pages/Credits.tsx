@@ -10,15 +10,15 @@ import { useUser, useClerk } from "@clerk/clerk-react"; // ADICIONADO: Clerk
 import { premiumToast } from "@/components/ui/premium-toast";
 import { SimpleHeader } from "@/components/boder/SimpleHeader";
 import { OrbBackground } from "@/components/boder/OrbBackground";
+import { readApiResponse, useApiClient } from "@/lib/apiClient";
 
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 
 const Credits = () => {
   const navigate = useNavigate();
   const { user, isLoaded, isSignedIn } = useUser(); // Hooks do Clerk
   const { openSignIn } = useClerk();
+  const { apiFetch } = useApiClient();
   
   const [quantity, setQuantity] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -38,12 +38,11 @@ const Credits = () => {
     async function fetchData() {
         if (isSignedIn && user) {
             try {
-                const res = await fetch(`${API_URL}/api/user/${user.id}?email=${user.primaryEmailAddress?.emailAddress}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setCurrentCredits(data.credits);
-                    setUserPlan(data.plan);
-                }
+                const res = await apiFetch(`/api/user/${user.id}?email=${user.primaryEmailAddress?.emailAddress}`);
+                if (!res.ok) throw new Error("Falha ao buscar dados");
+                const data = await res.json();
+                setCurrentCredits(data.credits);
+                setUserPlan(data.plan);
             } catch (error) {
                 console.error("Erro ao buscar dados:", error);
             } finally {
@@ -76,19 +75,24 @@ const Credits = () => {
 
     setIsProcessing(true);
     
-    // SIMULAÇÃO DE CHECKOUT
     try {
-      // Simula delay de rede
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await apiFetch("/api/payments/checkout", {
+        method: "POST",
+        body: JSON.stringify({
+          kind: "credits",
+          quantity,
+          userEmail: user?.primaryEmailAddress?.emailAddress,
+        }),
+      });
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao iniciar checkout");
 
-      premiumToast.success("Checkout iniciado", "Redirecionando para o pagamento (Simulado)...");
-      
-      // Aqui futuramente você chamaria o endpoint do Stripe/MercadoPago no backend
-      
-      setTimeout(() => {
-        window.open("https://google.com", "_blank"); 
-        setIsProcessing(false);
-      }, 1000);
+      const checkoutUrl = parsed.data?.checkoutUrl;
+      if (!checkoutUrl) throw new Error("Gateway nao retornou URL de checkout");
+
+      premiumToast.success("Checkout iniciado", "Redirecionando para o pagamento...");
+      window.open(checkoutUrl, "_blank");
+      setIsProcessing(false);
 
     } catch (err) {
       console.error("Error creating checkout:", err);
@@ -231,7 +235,7 @@ const Credits = () => {
                 </ShinyButton>
 
                 <p className="text-xs text-center text-muted-foreground">
-                  Pagamento seguro via Gateway (Simulado). Os créditos serão adicionados 
+                  Pagamento seguro via Rise Pay. Os créditos serão adicionados 
                   automaticamente à sua conta após a confirmação.
                 </p>
               </CardContent>
@@ -244,3 +248,6 @@ const Credits = () => {
 };
 
 export default Credits;
+
+
+

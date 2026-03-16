@@ -39,4 +39,18 @@ async function descontarCreditos(userId, custo, prompt, modelUsed) {
     ]);
 }
 
-module.exports = { verificarSaldo, descontarCreditos };
+async function creditarCreditos(userId, quantidade, reason = "manual") {
+    if (!quantidade || Number(quantidade) <= 0) return;
+    await prisma.user.upsert({
+        where: { id: userId },
+        update: { credits: { increment: Number(quantidade) } },
+        create: { id: userId, email: `${userId}@placeholder.local`, credits: Number(quantidade) },
+    });
+
+    // Opcional: guardar log simples como generationLog sem prompt real
+    await prisma.generationLog.create({
+        data: { userId, cost: 0, prompt: `CREDITO +${quantidade} (${reason})`, modelUsed: "payment-webhook" }
+    });
+}
+
+module.exports = { verificarSaldo, descontarCreditos, creditarCreditos };
