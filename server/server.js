@@ -1,3 +1,5 @@
+const path = require("path");
+const dotenv = require("dotenv");
 const express = require('express');
 const cors = require('cors');
 const apiRoutes = require('./src/routes/api');
@@ -5,6 +7,10 @@ const { requireAuth } = require("./src/middlewares/auth");
 
 const generatorController = require("./src/controllers/generatorController");
 const paymentsController = require("./src/controllers/paymentsController");
+
+// Carrega variaveis de ambiente locais tanto de `server/.env` quanto da raiz.
+dotenv.config({ path: path.resolve(__dirname, ".env") });
+dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
