@@ -107,9 +107,18 @@ export function SiteRenderer({ data, viewMode = "desktop" }: { data: any; viewMo
 
   const primaryColor = normalized.colors?.primary || "#3b82f6";
   const isMobile = viewMode === "mobile";
-  const visualVariant = "equinox";
+  const visualVariant = String(normalized?.metadata?.visual_variant || "conversion").toLowerCase();
   const typographyClass = "font-sans";
-  const canvasToneClass = "bg-[#040816] text-slate-100";
+  const canvasToneClass =
+    visualVariant === "portfolio"
+      ? "bg-[#0b0b0f] text-zinc-100"
+      : visualVariant === "lead"
+        ? "bg-slate-50 text-slate-950"
+        : visualVariant === "catalog"
+          ? "bg-white text-slate-950"
+          : visualVariant === "corporate"
+            ? "bg-white text-slate-950"
+            : "bg-[#040816] text-slate-100";
   const bg = normalized?.metadata?.background;
   const canvasStyle =
     bg?.type === "gradient" && bg?.from && bg?.to
@@ -125,7 +134,12 @@ export function SiteRenderer({ data, viewMode = "desktop" }: { data: any; viewMo
         const baseType = String(section?.type || "").toLowerCase();
         const normalizedType = SECTION_TYPE_ALIASES[baseType] || baseType;
         const sectionKey = `${normalizedType || "unknown"}-${index}`;
-        const props = { key: sectionKey, content: { ...section, visual_variant: visualVariant }, primaryColor, isMobile };
+        const props = {
+          key: sectionKey,
+          content: { ...section, visual_variant: section?.visual_variant || visualVariant },
+          primaryColor,
+          isMobile,
+        };
 
         switch (normalizedType) {
           case "hero":
