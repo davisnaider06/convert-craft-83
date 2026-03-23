@@ -644,19 +644,19 @@ export default function Create() {
       {/* Navigation */}
       {step > 0 && step < 5 && (
         <motion.div
-          className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4"
+          className="fixed bottom-6 left-4 right-4 sm:left-8 sm:right-8 lg:left-14 lg:right-14 xl:left-20 xl:right-20 z-40 flex items-center justify-between gap-4"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Button variant="ghost" size="lg" onClick={handleBack} className="gap-2">
+          <Button variant="ghost" size="lg" onClick={handleBack} className="gap-2 shrink-0 px-3 sm:px-5">
             <ArrowLeft className="h-4 w-4" />
-            Voltar
+            <span className="hidden sm:inline">Voltar</span>
           </Button>
           <ShinyButton
             onClick={step === 4 ? handleGenerate : step === 3 ? handleContinueFromCustomizations : handleNext}
             disabled={!canProceed()}
             size="default"
-            className="min-w-[140px] gap-2"
+            className="min-w-[150px] justify-center gap-2"
           >
             {step === 4 ? (
               <>

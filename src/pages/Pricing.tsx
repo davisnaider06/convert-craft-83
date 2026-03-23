@@ -29,38 +29,38 @@ const plans = [
     id: "free",
     name: "Free",
     price: "R$0",
-    period: "grátis",
+    period: "gratis",
     description: "Perfeito para validar a plataforma antes de escalar.",
-    credits: "15 créditos",
+    credits: "15 creditos",
     creditsNote: "iniciais",
-    cta: "Começar grátis",
+    cta: "Comecar gratis",
     popular: false,
     badge: null,
     features: [
-      { text: "15 créditos iniciais", included: true },
+      { text: "15 creditos iniciais", included: true },
       { text: "Editor com IA", included: true },
-      { text: "Subdomínio boder.app", included: true },
-      { text: "Domínio próprio", included: false },
-      { text: "Compra de créditos extras", included: false },
+      { text: "Subdominio boder.app", included: true },
+      { text: "Dominio proprio", included: false },
+      { text: "Compra de creditos extras", included: false },
     ],
   },
   {
     id: "pro",
     name: "Pro",
     price: "R$67",
-    period: "/mês",
-    description: "Para quem já está vendendo e precisa de volume.",
-    credits: "500 créditos",
-    creditsNote: "por mês",
+    period: "/mes",
+    description: "Para quem ja esta vendendo e precisa de volume.",
+    credits: "500 creditos",
+    creditsNote: "por mes",
     cta: "Assinar plano Pro",
     popular: false,
     badge: null,
     features: [
-      { text: "500 créditos por mês", included: true },
-      { text: "Domínio próprio", included: true },
-      { text: "Sem marca d'água", included: true },
-      { text: "Compra de créditos extras", included: true },
-      { text: "Suporte prioritário", included: true },
+      { text: "500 creditos por mes", included: true },
+      { text: "Dominio proprio", included: true },
+      { text: "Sem marca d'agua", included: true },
+      { text: "Compra de creditos extras", included: true },
+      { text: "Suporte prioritario", included: true },
     ],
   },
   {
@@ -69,17 +69,17 @@ const plans = [
     price: "R$247",
     period: "/ano",
     description: "Melhor custo para quem quer operar o ano inteiro.",
-    credits: "500 créditos",
-    creditsNote: "por mês",
+    credits: "500 creditos",
+    creditsNote: "por mes",
     cta: "Assinar plano Anual",
     popular: true,
-    badge: "Melhor custo-benefício",
+    badge: "Melhor custo-beneficio",
     features: [
-      { text: "500 créditos por mês", included: true },
-      { text: "Domínio próprio", included: true },
-      { text: "Sem marca d'água", included: true },
-      { text: "Compra de créditos extras", included: true },
-      { text: "Prioridade de geração", included: true },
+      { text: "500 creditos por mes", included: true },
+      { text: "Dominio proprio", included: true },
+      { text: "Sem marca d'agua", included: true },
+      { text: "Compra de creditos extras", included: true },
+      { text: "Prioridade de geracao", included: true },
     ],
   },
 ];
@@ -104,7 +104,7 @@ export default function Pricing() {
 
     if (!isSignedIn) {
       sessionStorage.setItem("pendingPlan", planId);
-      premiumToast.info("Faça login para continuar", "Vamos retomar o checkout logo após a autenticação.");
+      premiumToast.info("Faca login para continuar", "Vamos retomar o checkout logo apos a autenticacao.");
       openSignIn();
       return;
     }
@@ -124,12 +124,12 @@ export default function Pricing() {
         }),
       });
       const parsed = await readApiResponse(response);
-      if (!parsed.ok) throw new Error(parsed.error || "Falha ao criar cobrança");
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao criar cobranca");
 
       setCheckout(parsed.data?.checkout || null);
       setIsCheckoutOpen(true);
       premiumToast.success(
-        "Cobrança criada",
+        "Cobranca criada",
         paymentMethod === "pix" ? "Use o PIX para concluir a assinatura." : "Seu boleto foi gerado.",
       );
     } catch (error: any) {
@@ -198,7 +198,7 @@ export default function Pricing() {
               delay={80}
             />
             <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-              Agora o checkout roda com a Rise Pay e o pagamento é acompanhado dentro da própria plataforma.
+              Agora o checkout roda com a Rise Pay e o pagamento e acompanhado dentro da propria plataforma.
             </p>
           </motion.div>
 
@@ -207,7 +207,7 @@ export default function Pricing() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <span className="text-sm text-muted-foreground">Método de pagamento:</span>
+            <span className="text-sm text-muted-foreground">Metodo de pagamento:</span>
             <Button
               variant={paymentMethod === "pix" ? "default" : "outline"}
               onClick={() => setPaymentMethod("pix")}
@@ -275,7 +275,7 @@ export default function Pricing() {
                     disabled={loadingPlan !== null}
                     isLoading={loadingPlan === plan.id}
                   >
-                    {loadingPlan === plan.id ? "Gerando cobrança..." : plan.cta}
+                    {loadingPlan === plan.id ? "Gerando cobranca..." : plan.cta}
                     {loadingPlan !== plan.id ? <ArrowRight className="ml-2 h-4 w-4" /> : null}
                   </ShinyButton>
 
@@ -305,17 +305,17 @@ export default function Pricing() {
               {
                 icon: HelpCircle,
                 title: "Como funciona o pagamento",
-                text: "A cobrança é criada na Rise Pay e o status fica sincronizado no app.",
+                text: "A cobranca e criada na Rise Pay e o status fica sincronizado no app.",
               },
               {
                 icon: Shield,
-                title: "Confirmação segura",
-                text: "Quando a Rise Pay confirmar o pagamento, o plano é liberado automaticamente.",
+                title: "Confirmacao segura",
+                text: "Quando a Rise Pay confirmar o pagamento, o plano e liberado automaticamente.",
               },
               {
                 icon: Crown,
-                title: "Créditos extras",
-                text: "Planos pagos também podem comprar pacotes extras pela mesma integração.",
+                title: "Creditos extras",
+                text: "Planos pagos tambem podem comprar pacotes extras pela mesma integracao.",
               },
             ].map((item) => (
               <div key={item.title} className="rounded-2xl border border-border/60 bg-background/60 p-5">

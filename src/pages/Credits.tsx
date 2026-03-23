@@ -48,7 +48,7 @@ export default function Credits() {
     try {
       const res = await apiFetch("/api/billing/overview");
       const parsed = await readApiResponse(res);
-      if (!parsed.ok) throw new Error(parsed.error || "Falha ao carregar cobrança");
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao carregar cobranca");
       setCurrentCredits(parsed.data?.user?.credits || 0);
       setUserPlan(parsed.data?.user?.plan || "free");
     } catch (error) {
@@ -70,7 +70,7 @@ export default function Credits() {
 
   async function handlePurchase() {
     if (!user) {
-      premiumToast.error("Você precisa estar logado");
+      premiumToast.error("Voce precisa estar logado");
       return;
     }
 
@@ -89,11 +89,11 @@ export default function Credits() {
         }),
       });
       const parsed = await readApiResponse(response);
-      if (!parsed.ok) throw new Error(parsed.error || "Falha ao criar cobrança");
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao criar cobranca");
 
       setCheckout(parsed.data?.checkout || null);
       setIsCheckoutOpen(true);
-      premiumToast.success("Cobrança criada", "Conclua o pagamento para liberar os créditos.");
+      premiumToast.success("Cobranca criada", "Conclua o pagamento para liberar os creditos.");
     } catch (err: any) {
       premiumToast.error("Erro ao iniciar compra", err?.message || "Tente novamente.");
     } finally {
@@ -129,9 +129,9 @@ export default function Credits() {
             <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
               <Coins className="h-8 w-8 text-primary" />
             </div>
-            <h1 className="mb-2 text-3xl font-bold">Comprar créditos extras</h1>
+            <h1 className="mb-2 text-3xl font-bold">Comprar creditos extras</h1>
             <p className="text-muted-foreground">
-              Gere a cobrança na Rise Pay e receba os créditos automaticamente após a confirmação.
+              Gere a cobranca na Rise Pay e receba os creditos automaticamente apos a confirmacao.
             </p>
           </div>
 
@@ -139,9 +139,9 @@ export default function Credits() {
             <Card className="border-yellow-500/50 bg-yellow-500/5">
               <CardContent className="pt-6 text-center">
                 <Sparkles className="mx-auto mb-4 h-12 w-12 text-yellow-500" />
-                <h3 className="mb-2 text-xl font-semibold">Disponível para assinantes</h3>
+                <h3 className="mb-2 text-xl font-semibold">Disponivel para assinantes</h3>
                 <p className="mb-4 text-muted-foreground">
-                  A compra de créditos extras é liberada para quem está no plano Pro ou Anual.
+                  A compra de creditos extras e liberada para quem esta no plano Pro ou Anual.
                 </p>
                 <ShinyButton onClick={() => navigate("/pricing")}>Ver planos</ShinyButton>
               </CardContent>
@@ -151,13 +151,13 @@ export default function Credits() {
               <CardHeader className="text-center">
                 <CardTitle className="flex items-center justify-center gap-2">
                   <Zap className="h-5 w-5 text-primary" />
-                  Pacote de créditos
+                  Pacote de creditos
                 </CardTitle>
-                <CardDescription>Cada pacote adiciona {CREDITS_PER_PACK} créditos à sua conta.</CardDescription>
+                <CardDescription>Cada pacote adiciona {CREDITS_PER_PACK} creditos a sua conta.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between rounded-lg bg-muted/50 p-4">
-                  <span className="text-sm text-muted-foreground">Seus créditos atuais</span>
+                  <span className="text-sm text-muted-foreground">Seus creditos atuais</span>
                   <span className="text-2xl font-bold text-primary">{currentCredits}</span>
                 </div>
 
@@ -193,11 +193,11 @@ export default function Credits() {
 
                 <div className="space-y-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Créditos</span>
-                    <span className="font-semibold text-primary">{totalCredits} créditos</span>
+                    <span className="text-muted-foreground">Creditos</span>
+                    <span className="font-semibold text-primary">{totalCredits} creditos</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Preço por pacote</span>
+                    <span className="text-muted-foreground">Preco por pacote</span>
                     <span>R$ {PRICE_PER_PACK},00</span>
                   </div>
                   <div className="flex justify-between border-t border-primary/20 pt-3">
@@ -208,11 +208,11 @@ export default function Credits() {
 
                 <ShinyButton className="w-full" onClick={handlePurchase} disabled={isProcessing} isLoading={isProcessing}>
                   <ShoppingCart className="mr-2 h-5 w-5" />
-                  Comprar {totalCredits} créditos
+                  Comprar {totalCredits} creditos
                 </ShinyButton>
 
                 <p className="text-center text-xs text-muted-foreground">
-                  Após a confirmação na Rise Pay, os créditos entram automaticamente na sua conta.
+                  Apos a confirmacao na Rise Pay, os creditos entram automaticamente na sua conta.
                 </p>
               </CardContent>
             </Card>

@@ -1,65 +1,69 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Zap, Menu, X } from 'lucide-react';
+import React, { useState } from "react";
+import { Zap, Menu, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface NavbarProps {
   content: {
     logo_text?: string;
     links: { label: string; url: string }[];
     cta_text?: string;
+    visual_variant?: string;
   };
   primaryColor: string;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ content, primaryColor }) => {
-  const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const asText = (value: any, fallback: string) =>
+    typeof value === "string" ? value : value?.name || value?.title || value?.label || fallback;
+  const variant = String(content.visual_variant || "").toLowerCase();
+  const isLight = variant === "lead" || variant === "catalog" || variant === "corporate";
 
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const navLinks = (Array.isArray(content?.links) ? content.links : []).slice(0, 4).map((link: any, i: number) => ({
+    label: asText(link?.label, `Link ${i + 1}`),
+    url: asText(link?.url, "#"),
+  }));
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${
-      isScrolled ? 'bg-white/80 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-5'
-    }`}>
-      <div className="container mx-auto px-6 flex items-center justify-between">
-        {/* Logo */}
-        <div className="flex items-center gap-2 font-bold text-xl" style={{ color: isScrolled ? '#0f172a' : primaryColor }}>
-          <Zap className="h-6 w-6" fill={primaryColor} />
-          <span>{content.logo_text || "Boder site"}</span>
+    <nav className={`sticky top-0 z-40 backdrop-blur-xl ${isLight ? "border-b border-slate-200 bg-white/80" : "border-b border-white/10 bg-[#040816]/80"}`}>
+      <div className="container mx-auto px-6 h-20 flex items-center justify-between">
+        <div className={`flex items-center gap-2 font-semibold ${isLight ? "text-slate-900" : "text-white"}`}>
+          <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${primaryColor}25` }}>
+            <Zap className="h-4 w-4" style={{ color: primaryColor }} />
+          </div>
+          <span>{asText(content.logo_text, "Equinox")}</span>
         </div>
 
-        {/* Links Desktop */}
         <div className="hidden md:flex items-center gap-8">
-          {content.links?.map((link, i) => (
-            <a key={i} href={link.url} className="text-sm font-medium hover:opacity-70 transition-opacity text-slate-600">
+          {navLinks.map((link, i) => (
+            <a key={i} href={link.url} className={`text-sm transition-colors ${isLight ? "text-slate-600 hover:text-slate-950" : "text-slate-300 hover:text-white"}`}>
               {link.label}
             </a>
           ))}
-          <button 
-            className="px-6 py-2 rounded-full text-white text-sm font-bold transition-transform hover:scale-105"
-            style={{ backgroundColor: primaryColor }}
-          >
-            {content.cta_text || "Começar"}
-          </button>
         </div>
 
-        {/* Mobile Toggle */}
-        <button className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+        <div className="hidden md:flex items-center gap-3">
+          <span className="text-xs text-emerald-300 bg-emerald-300/10 px-3 py-1 rounded-full border border-emerald-300/30">
+            Online now
+          </span>
+          <Button className="rounded-full h-9 px-5 text-white" style={{ backgroundColor: primaryColor }}>
+            {asText(content.cta_text, "Contact us")}
+          </Button>
+        </div>
+
+        <button className={`md:hidden ${isLight ? "text-slate-900" : "text-white"}`} onClick={() => setMobileMenuOpen((v) => !v)}>
           {mobileMenuOpen ? <X /> : <Menu />}
         </button>
       </div>
 
-      {/* Menu Mobile */}
       {mobileMenuOpen && (
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="absolute top-full left-0 right-0 bg-white border-b p-6 flex flex-col gap-4 md:hidden shadow-xl">
-          {content.links?.map((link, i) => (
-            <a key={i} href={link.url} className="text-lg font-medium border-b border-slate-50 pb-2">{link.label}</a>
+        <div className={`md:hidden px-6 pb-4 flex flex-col gap-3 border-t ${isLight ? "border-slate-200 bg-white" : "border-white/10 bg-[#060d22]"}`}>
+          {navLinks.map((link, i) => (
+            <a key={i} href={link.url} className={`py-2 ${isLight ? "text-slate-700" : "text-slate-200"}`}>
+              {link.label}
+            </a>
           ))}
-        </motion.div>
+        </div>
       )}
     </nav>
   );

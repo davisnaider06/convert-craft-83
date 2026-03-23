@@ -1,17 +1,13 @@
 const { createRemoteJWKSet, jwtVerify } = require("jose");
 
-const clerkIssuer =
+const explicitIssuer = normalizeIssuer(
   process.env.CLERK_ISSUER ||
-  process.env.CLERK_JWT_ISSUER ||
-  process.env.CLERK_ISSUER_URL;
-const clerkJwksUrl =
-  process.env.CLERK_JWKS_URL ||
-  (clerkIssuer ? new URL("/.well-known/jwks.json", clerkIssuer).toString() : null);
-
-let jwks = null;
-if (clerkJwksUrl) {
-  jwks = createRemoteJWKSet(new URL(clerkJwksUrl));
-}
+    process.env.CLERK_JWT_ISSUER ||
+    process.env.CLERK_ISSUER_URL ||
+    null,
+);
+const explicitJwksUrl = process.env.CLERK_JWKS_URL || null;
+const jwksCache = new Map();
 
 function getBearerToken(req) {
   const header = req.headers.authorization || "";
@@ -19,32 +15,65 @@ function getBearerToken(req) {
   return header.slice(7).trim();
 }
 
+function decodeJwtPayload(token) {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+    const payloadBase64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const pad = payloadBase64.length % 4;
+    const normalized = pad ? payloadBase64 + "=".repeat(4 - pad) : payloadBase64;
+    return JSON.parse(Buffer.from(normalized, "base64").toString("utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function normalizeIssuer(issuer) {
+  if (!issuer) return null;
+  return String(issuer).replace(/\/+$/, "");
+}
+
+function getJwksForIssuer(issuer) {
+  const normalizedIssuer = normalizeIssuer(issuer);
+  if (!normalizedIssuer) return null;
+
+  const jwksUrl = explicitJwksUrl || `${normalizedIssuer}/.well-known/jwks.json`;
+  if (!jwksCache.has(jwksUrl)) {
+    jwksCache.set(jwksUrl, createRemoteJWKSet(new URL(jwksUrl)));
+  }
+  return jwksCache.get(jwksUrl);
+}
+
 async function requireAuth(req, res, next) {
   try {
-    if (!jwks || !clerkIssuer) {
-      return res.status(500).json({
-        error:
-          "Servidor sem configuracao de autenticacao. Defina CLERK_ISSUER (ou CLERK_JWT_ISSUER) e CLERK_JWKS_URL opcional.",
+    const token = getBearerToken(req);
+    if (!token) {
+      return res.status(401).json({ error: "Token de autenticacao ausente." });
+    }
+
+    const decoded = decodeJwtPayload(token);
+    const issuer = normalizeIssuer(explicitIssuer || decoded?.iss);
+    const jwks = getJwksForIssuer(issuer);
+
+    if (!issuer || !jwks) {
+      return res.status(401).json({
+        error: "Nao foi possivel validar autenticacao (issuer ausente).",
       });
     }
 
-    const token = getBearerToken(req);
-    if (!token) {
-      return res.status(401).json({ error: "Token de autenticação ausente." });
-    }
-
-    const { payload } = await jwtVerify(token, jwks, { issuer: clerkIssuer });
+    const { payload } = await jwtVerify(token, jwks, { issuer });
     if (!payload?.sub) {
-      return res.status(401).json({ error: "Token inválido (subject ausente)." });
+      return res.status(401).json({ error: "Token invalido (subject ausente)." });
     }
 
     req.auth = {
       userId: String(payload.sub),
       payload,
     };
-    next();
-  } catch (error) {
-    return res.status(401).json({ error: "Não autenticado." });
+
+    return next();
+  } catch {
+    return res.status(401).json({ error: "Nao autenticado." });
   }
 }
 

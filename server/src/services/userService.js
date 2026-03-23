@@ -55,12 +55,35 @@ async function descontarCreditos(userId, custo, prompt, modelUsed) {
   ]);
 }
 
+async function creditarCreditos(userId, quantidade, reason = "manual") {
+  const credits = Number(quantidade || 0);
+  if (credits <= 0) return null;
+
+  await ensureUser(userId);
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { credits: { increment: credits } },
+  });
+
+  await prisma.generationLog.create({
+    data: {
+      userId,
+      cost: 0,
+      prompt: `CREDITO +${credits} (${reason})`,
+      modelUsed: "payment-webhook",
+    },
+  });
+
+  return user;
+}
+
 async function applyPlanPurchase(userId, planId) {
   const plan = PLAN_DEFINITIONS[planId];
   if (!plan || plan.id === "free") {
-    throw new Error("Plano inválido para ativação.");
+    throw new Error("Plano invalido para ativacao.");
   }
 
+  await ensureUser(userId);
   return prisma.user.update({
     where: { id: userId },
     data: {
@@ -75,20 +98,13 @@ async function applyPlanPurchase(userId, planId) {
 async function applyCreditPackPurchase(userId, quantity) {
   const packs = Math.max(CREDIT_PACK.minQuantity, Math.min(CREDIT_PACK.maxQuantity, Number(quantity || 1)));
   const totalCredits = packs * CREDIT_PACK.creditsPerPack;
-
-  return prisma.user.update({
-    where: { id: userId },
-    data: {
-      credits: {
-        increment: totalCredits,
-      },
-    },
-  });
+  return creditarCreditos(userId, totalCredits, "rise_pay_checkout");
 }
 
 module.exports = {
   applyCreditPackPurchase,
   applyPlanPurchase,
+  creditarCreditos,
   descontarCreditos,
   ensureUser,
   prisma,

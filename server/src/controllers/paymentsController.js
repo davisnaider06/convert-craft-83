@@ -24,7 +24,7 @@ function normalizeCustomer(input, fallbackEmail) {
   const phone = String(input?.phone || "").trim();
 
   if (!name) {
-    throw new Error("Informe o nome do comprador para gerar a cobrança.");
+    throw new Error("Informe o nome do comprador para gerar a cobranca.");
   }
 
   return {
@@ -36,14 +36,14 @@ function normalizeCustomer(input, fallbackEmail) {
 }
 
 function buildPurchase(kind, payload) {
-  if (kind === "plan") {
+  if (kind === "plan" || kind === "subscription") {
     const plan = PLAN_DEFINITIONS[payload?.planId];
     if (!plan || plan.id === "free") {
-      throw new Error("Plano inválido.");
+      throw new Error("Plano invalido.");
     }
 
     return {
-      kind,
+      kind: "plan",
       amount: plan.amount,
       description: `Assinatura ${plan.name} Boder AI`,
       planId: plan.id,
@@ -69,16 +69,16 @@ function buildPurchase(kind, payload) {
     const amount = quantity * CREDIT_PACK.pricePerPack;
 
     return {
-      kind,
+      kind: "credits",
       amount,
-      description: `${totalCredits} créditos Boder AI`,
+      description: `${totalCredits} creditos Boder AI`,
       planId: null,
       quantity,
       creditsAmount: totalCredits,
       items: [
         {
           id: "credits_pack",
-          description: `${quantity} pacote(s) de créditos`,
+          description: `${quantity} pacote(s) de creditos`,
           quantity,
           price: CREDIT_PACK.pricePerPack,
         },
@@ -86,7 +86,7 @@ function buildPurchase(kind, payload) {
     };
   }
 
-  throw new Error("Tipo de compra inválido.");
+  throw new Error("Tipo de compra invalido.");
 }
 
 function buildExternalReference(kind, userId) {
@@ -116,7 +116,7 @@ function mapCheckoutResponse(payment) {
 async function persistTransaction({ userId, purchase, externalReference, paymentMethod, riseResponse }) {
   const normalized = risePayService.normalizeTransactionResponse(riseResponse);
 
-  const record = await userService.prisma.paymentTransaction.upsert({
+  return userService.prisma.paymentTransaction.upsert({
     where: { externalId: normalized.identifier },
     update: {
       status: normalized.status,
@@ -150,8 +150,6 @@ async function persistTransaction({ userId, purchase, externalReference, payment
       rawLastStatus: riseResponse,
     },
   });
-
-  return record;
 }
 
 async function applyPaymentIfNeeded(payment, remoteData = null) {
@@ -196,16 +194,22 @@ async function createCheckout(req, res) {
   try {
     const userId = getAuthenticatedUserId(req);
     const { kind, customer, paymentMethod = DEFAULT_PAYMENT_METHOD } = req.body || {};
-    const email = req.body?.customer?.email || req.body?.email || "";
+    const email = req.body?.customer?.email || req.body?.userEmail || req.body?.email || "";
 
     if (!userId) {
-      return res.status(401).json({ error: "Usuário não autenticado." });
+      return res.status(401).json({ error: "Usuario nao autenticado." });
     }
 
     await userService.ensureUser(userId, email);
     const purchase = buildPurchase(kind, req.body || {});
-    const normalizedCustomer = normalizeCustomer(customer, email);
-    const externalReference = buildExternalReference(kind, userId);
+    const normalizedCustomer = normalizeCustomer(
+      customer || {
+        name: req.body?.customerName || "Cliente Boder",
+        email,
+      },
+      email,
+    );
+    const externalReference = buildExternalReference(purchase.kind, userId);
 
     const risePayload = {
       amount: purchase.amount,
@@ -240,11 +244,11 @@ async function createCheckout(req, res) {
     return res.status(201).json({
       success: true,
       checkout: mapCheckoutResponse(payment),
-      gatewayMessage: riseResponse?.message || "Cobrança criada com sucesso.",
+      gatewayMessage: riseResponse?.message || "Cobranca criada com sucesso.",
     });
   } catch (error) {
     return res.status(error.status || 400).json({
-      error: error.message || "Falha ao criar cobrança na Rise Pay.",
+      error: error.message || "Falha ao criar cobranca na Rise Pay.",
       details: error.details || null,
     });
   }
@@ -259,7 +263,7 @@ async function getCheckoutStatus(req, res) {
     });
 
     if (!payment) {
-      return res.status(404).json({ error: "Cobrança não encontrada." });
+      return res.status(404).json({ error: "Cobranca nao encontrada." });
     }
 
     const result = await applyPaymentIfNeeded(payment);
@@ -274,7 +278,12 @@ async function getCheckoutStatus(req, res) {
         boletoUrl: result.remote.boletoUrl || result.payment.boletoUrl,
         boletoBarcode: result.remote.boletoBarcode || result.payment.boletoBarcode,
       },
-      user: user ? { plan: user.planType, credits: user.credits } : null,
+      user: user
+        ? {
+            plan: user.planType,
+            credits: user.credits,
+          }
+        : null,
     });
   } catch (error) {
     return res.status(error.status || 400).json({
@@ -288,7 +297,7 @@ async function getInstallments(req, res) {
   try {
     const value = Number(req.query.value || 0);
     if (!value || value <= 0) {
-      return res.status(400).json({ error: "Informe um valor válido para consultar parcelamento." });
+      return res.status(400).json({ error: "Informe um valor valido para consultar parcelamento." });
     }
 
     const data = await risePayService.getInstallments(value);
@@ -328,13 +337,19 @@ async function getBillingOverview(req, res) {
         creditPack: CREDIT_PACK,
       },
     });
-  } catch (error) {
-    return res.status(500).json({ error: "Falha ao carregar dados de cobrança." });
+  } catch {
+    return res.status(500).json({ error: "Falha ao carregar dados de cobranca." });
   }
 }
 
 async function handleRisePayWebhook(req, res) {
   try {
+    const signature = req.headers["x-risepay-signature"];
+    const raw = req.rawBody || JSON.stringify(req.body || {});
+    if (!risePayService.verifyWebhookSignature(raw, signature)) {
+      return res.status(401).json({ error: "Assinatura de webhook invalida." });
+    }
+
     const payload = req.body || {};
     const transactionIdentifier =
       payload?.object?.identifier ||
@@ -352,11 +367,10 @@ async function handleRisePayWebhook(req, res) {
     });
 
     if (!payment) {
-      return res.status(200).json({ success: true, message: "Webhook ignorado: transação não mapeada." });
+      return res.status(200).json({ success: true, message: "Webhook ignorado: transacao nao mapeada." });
     }
 
-    await applyPaymentIfNeeded(payment, payload?.object?.identifier ? payload : null);
-
+    await applyPaymentIfNeeded(payment);
     return res.status(200).json({ success: true });
   } catch (error) {
     return res.status(500).json({ error: error.message || "Falha ao processar webhook." });
@@ -397,4 +411,5 @@ module.exports = {
   getInstallments,
   handleRisePayWebhook,
   registerRisePayWebhook,
+  webhook: handleRisePayWebhook,
 };

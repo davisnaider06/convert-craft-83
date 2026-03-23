@@ -10,6 +10,7 @@ router.get("/sites", requireAuth, generatorController.listSites);
 router.get("/sites/:id", requireAuth, generatorController.getSiteById);
 router.post("/sites/draft", requireAuth, generatorController.saveDraft);
 router.delete("/sites/:id", requireAuth, generatorController.deleteSite);
+
 router.get("/billing/overview", requireAuth, paymentsController.getBillingOverview);
 router.get("/payments/installments", requireAuth, paymentsController.getInstallments);
 router.post("/payments/checkout", requireAuth, paymentsController.createCheckout);

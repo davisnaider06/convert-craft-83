@@ -13,12 +13,21 @@ interface FooterSectionProps {
 }
 
 export const FooterSection: React.FC<FooterSectionProps> = ({ content, primaryColor, isMobile }) => {
+  const socialMedia = Array.isArray(content?.social_media) ? content.social_media : [];
+  const variant = String((content as any)?.visual_variant || "").toLowerCase();
+  const isLight = variant === "lead" || variant === "catalog" || variant === "corporate" || variant === "biolink";
   return (
-    <footer className="py-12 bg-slate-950 text-slate-500 text-center px-4">
-      {content.social_media && content.social_media.length > 0 && (
+    <footer className={`py-12 text-center px-4 ${isLight ? "bg-white text-slate-500 border-t border-slate-200" : "bg-slate-950 text-slate-500"}`}>
+      {socialMedia.length > 0 && (
         <div className="flex justify-center gap-6 mb-8">
-          {content.social_media.map((sm: any, i: number) => (
-            <a key={i} href={sm.url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+          {socialMedia.map((sm: any, i: number) => (
+            <a
+              key={i}
+              href={sm.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`transition-colors ${isLight ? "hover:text-slate-900" : "hover:text-white"}`}
+            >
               {getIcon(sm.platform, 'h-6 w-6')}
             </a>
           ))}

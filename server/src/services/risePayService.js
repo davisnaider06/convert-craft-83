@@ -1,6 +1,19 @@
-const BASE_URL = process.env.RISEPAY_BASE_URL || "https://api.risepay.com.br";
-const PRIVATE_TOKEN = process.env.RISEPAY_PRIVATE_TOKEN || process.env.RISEPAY_TOKEN_PRIVATE || "";
-const PUBLIC_TOKEN = process.env.RISEPAY_PUBLIC_TOKEN || process.env.RISEPAY_TOKEN_PUBLIC || "";
+const crypto = require("crypto");
+
+const BASE_URL =
+  process.env.RISEPAY_BASE_URL ||
+  process.env.RISEPAY_API_BASE ||
+  "https://api.risepay.com.br";
+const PRIVATE_TOKEN =
+  process.env.RISEPAY_PRIVATE_TOKEN ||
+  process.env.RISEPAY_TOKEN_PRIVATE ||
+  process.env.RISEPAY_API_TOKEN ||
+  "";
+const PUBLIC_TOKEN =
+  process.env.RISEPAY_PUBLIC_TOKEN ||
+  process.env.RISEPAY_TOKEN_PUBLIC ||
+  "";
+const WEBHOOK_SECRET = process.env.RISEPAY_WEBHOOK_SECRET || "";
 const DEFAULT_TIMEOUT_MS = Number(process.env.RISEPAY_TIMEOUT_MS || 20000);
 
 function ensureConfigured() {
@@ -39,10 +52,7 @@ async function risePayRequest(path, init = {}) {
     }
 
     if (!response.ok) {
-      const message =
-        data?.message ||
-        data?.error ||
-        `Rise Pay respondeu HTTP ${response.status}`;
+      const message = data?.message || data?.error || `Rise Pay respondeu HTTP ${response.status}`;
       const error = new Error(message);
       error.status = response.status;
       error.details = data;
@@ -119,6 +129,18 @@ function isFinalStatus(status) {
   ].includes(String(status || ""));
 }
 
+function verifyWebhookSignature(rawBody, signature) {
+  if (!WEBHOOK_SECRET) return true;
+  if (!signature) return false;
+
+  const expected = crypto.createHmac("sha256", WEBHOOK_SECRET).update(rawBody).digest("hex");
+  try {
+    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
+
 module.exports = {
   createTransaction,
   createWebhook,
@@ -131,4 +153,5 @@ module.exports = {
   normalizeTransactionResponse,
   PRIVATE_TOKEN,
   PUBLIC_TOKEN,
+  verifyWebhookSignature,
 };
