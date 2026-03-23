@@ -31,8 +31,8 @@ function normalizeCustomer(input, fallbackEmail) {
     throw new Error("Informe o email do comprador para gerar a cobranca.");
   }
 
-  if (cpf.length !== 11) {
-    throw new Error("Informe um CPF valido para gerar a cobranca.");
+  if (![11, 14].includes(cpf.length)) {
+    throw new Error("Informe um CPF ou CNPJ valido para gerar a cobranca.");
   }
 
   if (phone.length < 10) {

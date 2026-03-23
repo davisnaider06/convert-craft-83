@@ -29,12 +29,21 @@ function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
 }
 
-function formatCpf(value: string) {
-  const digits = onlyDigits(value).slice(0, 11);
+function formatDocument(value: string) {
+  const digits = onlyDigits(value).slice(0, 14);
+
+  if (digits.length <= 11) {
+    return digits
+      .replace(/^(\d{3})(\d)/, "$1.$2")
+      .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d)/, ".$1-$2");
+  }
+
   return digits
-    .replace(/^(\d{3})(\d)/, "$1.$2")
-    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
-    .replace(/\.(\d{3})(\d)/, ".$1-$2");
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2");
 }
 
 function formatPhone(value: string) {
@@ -86,7 +95,7 @@ export function RisePayCustomerDialog({
         <DialogHeader>
           <DialogTitle>Dados do comprador</DialogTitle>
           <DialogDescription>
-            A Rise Pay exige nome, email, CPF e telefone para gerar a cobrança.
+            A Rise Pay exige nome, email, CPF ou CNPJ valido e telefone para gerar a cobranca.
           </DialogDescription>
         </DialogHeader>
 
@@ -115,12 +124,12 @@ export function RisePayCustomerDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="rise-cpf">CPF</Label>
+            <Label htmlFor="rise-cpf">CPF ou CNPJ (precisa ser um CPF ou CNPJ valido)</Label>
             <Input
               id="rise-cpf"
               value={cpf}
-              onChange={(event) => setCpf(formatCpf(event.target.value))}
-              placeholder="000.000.000-00"
+              onChange={(event) => setCpf(formatDocument(event.target.value))}
+              placeholder="000.000.000-00 ou 00.000.000/0000-00"
               required
             />
           </div>
@@ -141,7 +150,7 @@ export function RisePayCustomerDialog({
               Cancelar
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? "Processando..." : "Gerar cobrança"}
+              {loading ? "Processando..." : "Gerar cobranca"}
             </Button>
           </DialogFooter>
         </form>

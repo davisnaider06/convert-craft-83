@@ -26,12 +26,20 @@ function onlyDigits(value: string) {
   return value.replace(/\D/g, "");
 }
 
-function formatCpf(value: string) {
-  const digits = onlyDigits(value).slice(0, 11);
+function formatDocument(value: string) {
+  const digits = onlyDigits(value).slice(0, 14);
+  if (digits.length <= 11) {
+    return digits
+      .replace(/^(\d{3})(\d)/, "$1.$2")
+      .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d)/, ".$1-$2");
+  }
+
   return digits
-    .replace(/^(\d{3})(\d)/, "$1.$2")
-    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
-    .replace(/\.(\d{3})(\d)/, ".$1-$2");
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1/$2")
+    .replace(/(\d{4})(\d)/, "$1-$2");
 }
 
 function formatPhone(value: string) {
@@ -111,12 +119,12 @@ export function RisePayCheckoutDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="rise-cpf">CPF</Label>
+            <Label htmlFor="rise-cpf">CPF ou CNPJ (precisa ser um CPF ou CNPJ valido)</Label>
             <Input
               id="rise-cpf"
               value={cpf}
-              onChange={(e) => setCpf(formatCpf(e.target.value))}
-              placeholder="000.000.000-00"
+              onChange={(e) => setCpf(formatDocument(e.target.value))}
+              placeholder="000.000.000-00 ou 00.000.000/0000-00"
               required
             />
           </div>
