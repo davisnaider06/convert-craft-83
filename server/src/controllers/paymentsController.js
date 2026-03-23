@@ -21,17 +21,29 @@ function normalizeCustomer(input, fallbackEmail) {
   const name = String(input?.name || "").trim();
   const email = String(input?.email || fallbackEmail || "").trim();
   const cpf = String(input?.cpf || "").replace(/\D/g, "");
-  const phone = String(input?.phone || "").trim();
+  const phone = String(input?.phone || "").replace(/\D/g, "");
 
   if (!name) {
     throw new Error("Informe o nome do comprador para gerar a cobranca.");
   }
 
+  if (!email) {
+    throw new Error("Informe o email do comprador para gerar a cobranca.");
+  }
+
+  if (cpf.length !== 11) {
+    throw new Error("Informe um CPF valido para gerar a cobranca.");
+  }
+
+  if (phone.length < 10) {
+    throw new Error("Informe um telefone valido para gerar a cobranca.");
+  }
+
   return {
     name,
-    email: email || undefined,
-    cpf: cpf || undefined,
-    phone: phone || undefined,
+    email,
+    cpf,
+    phone,
   };
 }
 
@@ -213,23 +225,13 @@ async function createCheckout(req, res) {
 
     const risePayload = {
       amount: purchase.amount,
-      currency: "BRL",
       payment: {
         method: paymentMethod,
         ...(paymentMethod === "pix" ? { expiresAt: 48 } : {}),
         ...(paymentMethod === "boleto" ? { expiresInDays: 3 } : {}),
       },
       customer: normalizedCustomer,
-      items: purchase.items,
-      metadata: {
-        userId,
-        purchaseKind: purchase.kind,
-        planId: purchase.planId,
-        creditsAmount: purchase.creditsAmount,
-        quantity: purchase.quantity,
-      },
-      externalReference,
-      postBackUrl: getDefaultPostbackUrl() || undefined,
+      ...(paymentMethod !== "boleto" ? { currency: "BRL" } : {}),
     };
 
     const riseResponse = await risePayService.createTransaction(risePayload);

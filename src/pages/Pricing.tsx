@@ -23,6 +23,7 @@ import { premiumToast } from "@/components/ui/premium-toast";
 import { readApiResponse, useApiClient } from "@/lib/apiClient";
 import { BillingPaymentMethod, CheckoutSession } from "@/lib/billing";
 import { RisePayCheckoutDialog } from "@/components/boder/RisePayCheckoutDialog";
+import { RisePayCustomerDialog } from "@/components/boder/RisePayCustomerDialog";
 
 const plans = [
   {
@@ -95,6 +96,8 @@ export default function Pricing() {
   const [paymentMethod, setPaymentMethod] = useState<BillingPaymentMethod>("pix");
   const [checkout, setCheckout] = useState<CheckoutSession | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
 
   async function startCheckout(planId: string) {
     if (planId === "free") {
@@ -109,18 +112,27 @@ export default function Pricing() {
       return;
     }
 
-    setLoadingPlan(planId);
+    setSelectedPlanId(planId);
+    setIsCustomerDialogOpen(true);
+  }
+
+  async function handleConfirmCustomer(customer: {
+    name: string;
+    email: string;
+    cpf: string;
+    phone: string;
+  }) {
+    if (!selectedPlanId) return;
+
+    setLoadingPlan(selectedPlanId);
     try {
       const response = await apiFetch("/api/payments/checkout", {
         method: "POST",
         body: JSON.stringify({
           kind: "plan",
-          planId,
+          planId: selectedPlanId,
           paymentMethod,
-          customer: {
-            name: user?.fullName || user?.firstName || "Cliente Boder",
-            email: user?.primaryEmailAddress?.emailAddress || "",
-          },
+          customer,
         }),
       });
       const parsed = await readApiResponse(response);
@@ -128,6 +140,7 @@ export default function Pricing() {
 
       setCheckout(parsed.data?.checkout || null);
       setIsCheckoutOpen(true);
+      setIsCustomerDialogOpen(false);
       premiumToast.success(
         "Cobranca criada",
         paymentMethod === "pix" ? "Use o PIX para concluir a assinatura." : "Seu boleto foi gerado.",
@@ -152,6 +165,19 @@ export default function Pricing() {
   return (
     <div className="relative min-h-screen overflow-hidden">
       <OrbBackground />
+      <RisePayCustomerDialog
+        open={isCustomerDialogOpen}
+        onOpenChange={(open) => {
+          if (!loadingPlan) {
+            setIsCustomerDialogOpen(open);
+            if (!open) setSelectedPlanId(null);
+          }
+        }}
+        defaultName={user?.fullName || user?.firstName || ""}
+        defaultEmail={user?.primaryEmailAddress?.emailAddress || ""}
+        loading={loadingPlan !== null}
+        onConfirm={handleConfirmCustomer}
+      />
 
       <motion.header
         className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm"

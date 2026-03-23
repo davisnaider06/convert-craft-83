@@ -20,6 +20,7 @@ import { premiumToast } from "@/components/ui/premium-toast";
 import { readApiResponse, useApiClient } from "@/lib/apiClient";
 import { BillingPaymentMethod, CheckoutSession } from "@/lib/billing";
 import { RisePayCheckoutDialog } from "@/components/boder/RisePayCheckoutDialog";
+import { RisePayCustomerDialog } from "@/components/boder/RisePayCustomerDialog";
 
 const CREDITS_PER_PACK = 50;
 const PRICE_PER_PACK = 27;
@@ -35,6 +36,7 @@ export default function Credits() {
   const [paymentMethod, setPaymentMethod] = useState<BillingPaymentMethod>("pix");
   const [checkout, setCheckout] = useState<CheckoutSession | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
   const [currentCredits, setCurrentCredits] = useState(0);
   const [userPlan, setUserPlan] = useState("free");
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -74,6 +76,15 @@ export default function Credits() {
       return;
     }
 
+    setIsCustomerDialogOpen(true);
+  }
+
+  async function handleConfirmCustomer(customer: {
+    name: string;
+    email: string;
+    cpf: string;
+    phone: string;
+  }) {
     setIsProcessing(true);
     try {
       const response = await apiFetch("/api/payments/checkout", {
@@ -82,10 +93,7 @@ export default function Credits() {
           kind: "credits",
           quantity,
           paymentMethod,
-          customer: {
-            name: user.fullName || user.firstName || "Cliente Boder",
-            email: user.primaryEmailAddress?.emailAddress || "",
-          },
+          customer,
         }),
       });
       const parsed = await readApiResponse(response);
@@ -93,6 +101,7 @@ export default function Credits() {
 
       setCheckout(parsed.data?.checkout || null);
       setIsCheckoutOpen(true);
+      setIsCustomerDialogOpen(false);
       premiumToast.success("Cobranca criada", "Conclua o pagamento para liberar os creditos.");
     } catch (err: any) {
       premiumToast.error("Erro ao iniciar compra", err?.message || "Tente novamente.");
@@ -112,6 +121,16 @@ export default function Credits() {
   return (
     <div className="relative min-h-screen overflow-hidden">
       <OrbBackground />
+      <RisePayCustomerDialog
+        open={isCustomerDialogOpen}
+        onOpenChange={(open) => {
+          if (!isProcessing) setIsCustomerDialogOpen(open);
+        }}
+        defaultName={user?.fullName || user?.firstName || ""}
+        defaultEmail={user?.primaryEmailAddress?.emailAddress || ""}
+        loading={isProcessing}
+        onConfirm={handleConfirmCustomer}
+      />
       <SimpleHeader />
 
       <div className="container mx-auto px-4 py-12">
