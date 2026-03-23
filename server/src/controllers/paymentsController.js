@@ -12,10 +12,13 @@ const createCheckout = async (req, res) => {
       return res.status(401).json({ error: "Nao autenticado." });
     }
 
-    const { kind = "subscription", planId, quantity, userEmail } = req.body || {};
+    const { kind = "subscription", planId, quantity, userEmail, userName, userCpf, userPhone } = req.body || {};
     const checkout = await risePayService.createCheckout({
       userId,
       email: userEmail,
+      name: userName,
+      cpf: userCpf,
+      phone: userPhone,
       kind,
       planId,
       quantity,
@@ -24,10 +27,25 @@ const createCheckout = async (req, res) => {
     return res.json({
       success: true,
       checkoutUrl: checkout.checkoutUrl,
+      pixQrCode: checkout.pixQrCode,
+      transactionId: checkout.transactionId,
+      transactionStatus: checkout.transactionStatus,
       provider: "risepay",
     });
   } catch (error) {
-    return res.status(400).json({ error: error.message || "Falha ao criar checkout." });
+    console.error("[RisePay][checkout]", {
+      message: error?.message,
+      code: error?.code,
+      status: error?.status,
+      providerPayload: error?.providerPayload,
+      requestPayload: error?.requestPayload,
+    });
+
+    return res.status(error?.status || 400).json({
+      error: error?.message || "Falha ao criar checkout.",
+      code: error?.code || "CHECKOUT_FAILED",
+      details: process.env.NODE_ENV === "production" ? undefined : error?.providerPayload || error?.requestPayload,
+    });
   }
 };
 

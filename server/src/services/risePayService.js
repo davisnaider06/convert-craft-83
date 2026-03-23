@@ -1,19 +1,29 @@
 const crypto = require("crypto");
 
-const RISEPAY_API_BASE = process.env.RISEPAY_API_BASE || "https://api.risepay.com";
-const RISEPAY_CHECKOUT_PATH = process.env.RISEPAY_CHECKOUT_PATH || "/v1/checkouts";
+const RISEPAY_API_BASE = process.env.RISEPAY_API_BASE || "https://api.risepay.com.br";
+const RISEPAY_CHECKOUT_PATH = process.env.RISEPAY_CHECKOUT_PATH || "/api/External/Transactions";
 const RISEPAY_API_TOKEN = process.env.RISEPAY_API_TOKEN || "";
 const RISEPAY_WEBHOOK_SECRET = process.env.RISEPAY_WEBHOOK_SECRET || "";
 const RISEPAY_SUCCESS_URL = process.env.RISEPAY_SUCCESS_URL || "";
 const RISEPAY_CANCEL_URL = process.env.RISEPAY_CANCEL_URL || "";
+const RISEPAY_PAYMENT_METHOD = String(process.env.RISEPAY_PAYMENT_METHOD || "pix").toLowerCase();
+const RISEPAY_PIX_EXPIRES_HOURS = Number(process.env.RISEPAY_PIX_EXPIRES_HOURS || 48);
+const RISEPAY_CUSTOMER_CPF = process.env.RISEPAY_CUSTOMER_CPF || "";
+const RISEPAY_CUSTOMER_PHONE = process.env.RISEPAY_CUSTOMER_PHONE || "";
+
+function createRisePayError(message, extra = {}) {
+  const error = new Error(message);
+  Object.assign(error, extra);
+  return error;
+}
 
 const PLAN_CATALOG = {
-  pro: { amount: 6700, currency: "BRL", description: "Plano Pro (mensal)" },
-  annual: { amount: 24700, currency: "BRL", description: "Plano Anual" },
+  pro: { amount: 67, currency: "BRL", description: "Plano Pro (mensal)" },
+  annual: { amount: 247, currency: "BRL", description: "Plano Anual" },
 };
 
 const CREDIT_PACK = {
-  amount: 2700,
+  amount: 27,
   creditsPerPack: 50,
   currency: "BRL",
 };
@@ -45,28 +55,86 @@ function getCheckoutConfig({ kind, planId, quantity }) {
   };
 }
 
-async function createCheckout({ userId, email, kind, planId, quantity }) {
+function sanitizeCpf(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function sanitizePhone(value) {
+  return String(value || "").replace(/[^\d+]/g, "");
+}
+
+function buildCustomer({ userId, email, name, cpf, phone }) {
+  const normalizedName = String(name || "").trim() || (email ? String(email).split("@")[0] : `Cliente ${userId}`);
+  const normalizedEmail = String(email || "").trim();
+  const normalizedCpf = sanitizeCpf(cpf || RISEPAY_CUSTOMER_CPF);
+  const normalizedPhone = sanitizePhone(phone || RISEPAY_CUSTOMER_PHONE);
+
+  if (!normalizedEmail) {
+    throw createRisePayError("Rise Pay exige email do cliente para criar a transacao.", {
+      code: "RISEPAY_MISSING_CUSTOMER_EMAIL",
+    });
+  }
+
+  if (!normalizedCpf) {
+    throw createRisePayError("Rise Pay exige CPF do cliente para criar a transacao.", {
+      code: "RISEPAY_MISSING_CUSTOMER_CPF",
+    });
+  }
+
+  if (!normalizedPhone) {
+    throw createRisePayError("Rise Pay exige telefone do cliente para criar a transacao.", {
+      code: "RISEPAY_MISSING_CUSTOMER_PHONE",
+    });
+  }
+
+  return {
+    name: normalizedName,
+    email: normalizedEmail,
+    cpf: normalizedCpf,
+    phone: normalizedPhone,
+  };
+}
+
+async function createCheckout({ userId, email, name, cpf, phone, kind, planId, quantity }) {
   if (!isConfigured()) {
-    throw new Error("Rise Pay nao configurado. Defina RISEPAY_API_TOKEN.");
+    throw createRisePayError("Rise Pay nao configurado. Defina RISEPAY_API_TOKEN.", {
+      code: "RISEPAY_MISSING_CONFIG",
+    });
   }
 
   const checkout = getCheckoutConfig({ kind, planId, quantity });
   const externalId = `${userId}-${Date.now()}`;
+  const customer = buildCustomer({ userId, email, name, cpf, phone });
 
   const payload = {
-    external_id: externalId,
     amount: checkout.amount,
     currency: checkout.currency,
-    description: checkout.description,
-    customer: {
-      id: userId,
-      email: email || undefined,
+    externalReference: externalId,
+    postBackUrl: RISEPAY_SUCCESS_URL || undefined,
+    payment: {
+      method: RISEPAY_PAYMENT_METHOD,
+      expiresAt: RISEPAY_PAYMENT_METHOD === "pix" ? RISEPAY_PIX_EXPIRES_HOURS : undefined,
     },
-    success_url: RISEPAY_SUCCESS_URL || undefined,
-    cancel_url: RISEPAY_CANCEL_URL || undefined,
+    customer,
+    items: [
+      {
+        title: checkout.description,
+        quantity: 1,
+        unitPrice: checkout.amount,
+        tangible: false,
+      },
+    ],
+    productList: [
+      {
+        name: checkout.description,
+        price: checkout.amount,
+      },
+    ],
+    currency: checkout.currency,
     metadata: {
       userId,
       ...checkout.metadata,
+      cancelUrl: RISEPAY_CANCEL_URL || undefined,
     },
   };
 
@@ -74,7 +142,7 @@ async function createCheckout({ userId, email, kind, planId, quantity }) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${RISEPAY_API_TOKEN}`,
+      Authorization: RISEPAY_API_TOKEN,
     },
     body: JSON.stringify(payload),
   });
@@ -88,7 +156,15 @@ async function createCheckout({ userId, email, kind, planId, quantity }) {
   }
 
   if (!response.ok) {
-    throw new Error(data?.error || data?.message || `Erro Rise Pay (${response.status})`);
+    throw createRisePayError(
+      data?.error || data?.message || data?.raw || `Erro Rise Pay (${response.status})`,
+      {
+        code: "RISEPAY_CHECKOUT_FAILED",
+        status: response.status,
+        providerPayload: data,
+        requestPayload: payload,
+      }
+    );
   }
 
   const checkoutUrl =
@@ -96,13 +172,43 @@ async function createCheckout({ userId, email, kind, planId, quantity }) {
     data?.payment_url ||
     data?.url ||
     data?.data?.checkout_url ||
-    data?.data?.url;
+    data?.data?.url ||
+    data?.object?.checkoutUrl ||
+    data?.object?.url;
 
-  if (!checkoutUrl) {
-    throw new Error("Rise Pay nao retornou URL de checkout.");
+  const pixQrCode =
+    data?.object?.pix?.qrCode ||
+    data?.pix?.qrCode ||
+    data?.data?.pix?.qrCode ||
+    null;
+
+  const transactionId =
+    data?.object?.identifier ||
+    data?.object?.id ||
+    data?.identifier ||
+    data?.id ||
+    null;
+
+  const transactionStatus =
+    data?.object?.status ||
+    data?.status ||
+    null;
+
+  if (!checkoutUrl && !pixQrCode) {
+    throw createRisePayError("Rise Pay nao retornou URL de checkout nem QR Code PIX.", {
+      code: "RISEPAY_MISSING_URL",
+      providerPayload: data,
+      requestPayload: payload,
+    });
   }
 
-  return { checkoutUrl, providerPayload: data };
+  return {
+    checkoutUrl,
+    pixQrCode,
+    transactionId,
+    transactionStatus,
+    providerPayload: data,
+  };
 }
 
 function verifyWebhookSignature(rawBody, signature) {
@@ -126,4 +232,3 @@ module.exports = {
   createCheckout,
   verifyWebhookSignature,
 };
-

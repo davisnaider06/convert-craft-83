@@ -24,6 +24,8 @@ import boderLogo from "@/assets/boder-logo.png";
 import BlurText from "@/components/ui/BlurText";
 import { ShinyButton } from "@/components/ui/ShinyButton";
 import { readApiResponse, useApiClient } from "@/lib/apiClient";
+import { openRisePayWindow } from "@/lib/risePay";
+import { RisePayCheckoutDialog } from "@/components/payments/RisePayCheckoutDialog";
 
 const plans = [
   {
@@ -114,6 +116,7 @@ export default function Pricing() {
   const { apiFetch } = useApiClient();
   
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [checkoutPlan, setCheckoutPlan] = useState<string | null>(null);
 
   const handleSelectPlan = async (planId: string) => {
     // 1. Lógica para plano Grátis
@@ -135,31 +138,44 @@ export default function Pricing() {
       return;
     }
 
-    // 3. Checkout real via backend (Rise Pay)
-    setLoadingPlan(planId);
+    setCheckoutPlan(planId);
+  };
 
+  const handleConfirmCheckout = async (customer: { name: string; email: string; cpf: string; phone: string }) => {
+    if (!checkoutPlan) return;
+    setLoadingPlan(checkoutPlan);
     try {
       const response = await apiFetch("/api/payments/checkout", {
         method: "POST",
         body: JSON.stringify({
           kind: "subscription",
-          planId,
-          userEmail: user?.primaryEmailAddress?.emailAddress,
+          planId: checkoutPlan,
+          userEmail: customer.email,
+          userName: customer.name,
+          userCpf: customer.cpf,
+          userPhone: customer.phone,
         }),
       });
       const parsed = await readApiResponse(response);
       if (!parsed.ok) throw new Error(parsed.error || "Falha ao iniciar checkout");
 
-      const checkoutUrl = parsed.data?.checkoutUrl;
-      if (!checkoutUrl) throw new Error("Gateway nao retornou URL de checkout");
-
-      premiumToast.success("Redirecionando...", "Abrindo gateway de pagamento seguro.");
-      window.open(checkoutUrl, "_blank");
+      openRisePayWindow({
+        title: `Pagamento Rise Pay - ${checkoutPlan === "annual" ? "Plano Anual" : "Plano Pro"}`,
+        checkoutUrl: parsed.data?.checkoutUrl,
+        qrCode: parsed.data?.pixQrCode,
+        transactionId: parsed.data?.transactionId,
+        status: parsed.data?.transactionStatus,
+      });
+      premiumToast.success("Pagamento iniciado", parsed.data?.pixQrCode ? "Abrimos o codigo PIX para voce finalizar." : "Abrindo gateway de pagamento seguro.");
       setLoadingPlan(null);
+      setCheckoutPlan(null);
 
     } catch (err) {
       console.error("Checkout error:", err);
-      premiumToast.error("Erro ao iniciar pagamento", "Tente novamente.");
+      premiumToast.error(
+        "Erro ao iniciar pagamento",
+        err instanceof Error ? err.message : "Tente novamente."
+      );
       setLoadingPlan(null);
     }
   };
@@ -167,6 +183,18 @@ export default function Pricing() {
   return (
     <div className="relative min-h-screen overflow-hidden">
       <OrbBackground />
+      <RisePayCheckoutDialog
+        open={checkoutPlan !== null}
+        onOpenChange={(open) => {
+          if (!open && !loadingPlan) setCheckoutPlan(null);
+        }}
+        title="Dados para pagamento"
+        description="A Rise Pay exige os dados do comprador para criar a transacao."
+        defaultName={user?.fullName || user?.firstName || ""}
+        defaultEmail={user?.primaryEmailAddress?.emailAddress || ""}
+        loading={loadingPlan !== null}
+        onConfirm={handleConfirmCheckout}
+      />
 
       {/* Header */}
       <motion.header
