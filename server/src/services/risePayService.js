@@ -116,21 +116,6 @@ async function createCheckout({ userId, email, name, cpf, phone, kind, planId, q
       expiresAt: RISEPAY_PAYMENT_METHOD === "pix" ? RISEPAY_PIX_EXPIRES_HOURS : undefined,
     },
     customer,
-    items: [
-      {
-        title: checkout.description,
-        quantity: 1,
-        unitPrice: checkout.amount,
-        tangible: false,
-      },
-    ],
-    productList: [
-      {
-        name: checkout.description,
-        price: checkout.amount,
-      },
-    ],
-    currency: checkout.currency,
     metadata: {
       userId,
       ...checkout.metadata,
@@ -157,7 +142,7 @@ async function createCheckout({ userId, email, name, cpf, phone, kind, planId, q
 
   if (!response.ok) {
     throw createRisePayError(
-      data?.error || data?.message || data?.raw || `Erro Rise Pay (${response.status})`,
+      data?.error || data?.message || data?.details || data?.raw || `Erro Rise Pay (${response.status})`,
       {
         code: "RISEPAY_CHECKOUT_FAILED",
         status: response.status,
