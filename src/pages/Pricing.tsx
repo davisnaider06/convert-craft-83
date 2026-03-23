@@ -187,10 +187,10 @@ export default function Pricing() {
         <div className="container flex h-16 items-center justify-between">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            className="flex items-center gap-3 transition-opacity hover:opacity-80"
           >
             <img src={boderLogo} alt="Boder AI" className="h-8 w-auto" />
-            <span className="text-xl font-semibold hidden sm:inline">Boder AI</span>
+            <span className="hidden text-xl font-semibold sm:inline">Boder AI</span>
           </button>
 
           <div className="flex items-center gap-3">
@@ -206,7 +206,7 @@ export default function Pricing() {
         </div>
       </motion.header>
 
-      <main className="relative pt-24 pb-20 px-4">
+      <main className="relative px-4 pb-20 pt-24">
         <div className="container mx-auto max-w-6xl">
           <motion.div
             className="mb-12 text-center"
