@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 import { Copy, ExternalLink, Loader2, QrCode, ReceiptText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,10 +29,43 @@ export function RisePayCheckoutDialog({
   const { apiFetch } = useApiClient();
   const [currentCheckout, setCurrentCheckout] = useState<CheckoutSession | null>(checkout);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pixQrImage, setPixQrImage] = useState<string | null>(null);
 
   useEffect(() => {
     setCurrentCheckout(checkout);
   }, [checkout]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function generateQrImage() {
+      if (!currentCheckout?.pixQrCode) {
+        setPixQrImage(null);
+        return;
+      }
+
+      try {
+        const dataUrl = await QRCode.toDataURL(currentCheckout.pixQrCode, {
+          width: 256,
+          margin: 1,
+          errorCorrectionLevel: "M",
+        });
+        if (active) {
+          setPixQrImage(dataUrl);
+        }
+      } catch {
+        if (active) {
+          setPixQrImage(null);
+        }
+      }
+    }
+
+    generateQrImage();
+
+    return () => {
+      active = false;
+    };
+  }, [currentCheckout?.pixQrCode]);
 
   useEffect(() => {
     if (!open || !currentCheckout?.externalId) return;
@@ -127,8 +161,17 @@ export function RisePayCheckoutDialog({
               <div className="space-y-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <QrCode className="h-4 w-4 text-primary" />
-                  PIX copia e cola
+                  PIX com QR Code
                 </div>
+                {pixQrImage ? (
+                  <div className="flex justify-center rounded-2xl border border-border bg-background p-4">
+                    <img
+                      src={pixQrImage}
+                      alt="QR Code PIX"
+                      className="h-56 w-56 rounded-xl"
+                    />
+                  </div>
+                ) : null}
                 <textarea
                   readOnly
                   value={currentCheckout.pixQrCode}
