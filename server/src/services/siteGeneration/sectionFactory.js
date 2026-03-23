@@ -22,8 +22,11 @@ function limitText(value, max) {
 function formatPrice(value) {
   if (!value) return "";
   if (String(value).includes("R$")) return String(value);
-  const numeric = Number(String(value).replace(/[^\d.,]/g, "").replace(",", "."));
-  if (Number.isFinite(numeric) && numeric > 0) return `R$ ${Math.round(numeric)}`;
+  const raw = String(value).trim();
+  if (/^\d+(?:[.,]\d+)?$/.test(raw)) {
+    const numeric = Number(raw.replace(",", "."));
+    if (Number.isFinite(numeric) && numeric > 0) return `R$ ${Math.round(numeric)}`;
+  }
   return String(value);
 }
 
@@ -40,11 +43,11 @@ function makeAnchor(label) {
   return `#${clean.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "inicio"}`;
 }
 
-function applyStyleDirectives(site, styleDirectives) {
+function applyStyleDirectives(site, styleDirectives, designSystem) {
   const palette = styleDirectives?.requestedColors || [];
-  const primary = palette[0] || site.colors?.primary || "#2563eb";
-  const secondary = palette[1] || site.colors?.secondary || "#0f172a";
-  const accent = palette[2] || site.colors?.accent || "#14b8a6";
+  const primary = palette[0] || designSystem?.color_palette?.primary || site.colors?.primary || "#2563eb";
+  const secondary = palette[1] || designSystem?.color_palette?.secondary || site.colors?.secondary || "#0f172a";
+  const accent = palette[2] || designSystem?.color_palette?.accent || site.colors?.accent || "#14b8a6";
 
   const updated = {
     ...site,
@@ -52,6 +55,7 @@ function applyStyleDirectives(site, styleDirectives) {
     metadata: {
       ...(site.metadata || {}),
       style_directives: styleDirectives || {},
+      design_system: designSystem || site.metadata?.design_system || null,
     },
   };
 
@@ -73,47 +77,80 @@ function applyStyleDirectives(site, styleDirectives) {
   return updated;
 }
 
-function createFallbackBrief({ analysis, profile, templateBlueprint }) {
+function createFallbackBrief({ analysis, profile, templateBlueprint, productPlan, designSystem }) {
   const keyword = analysis.primaryKeyword;
   const secondary = analysis.secondaryKeyword;
   const brandName = analysis.explicitBrand || titleCase(keyword) || "Sua Marca";
   const voice = profile.voice;
+  const primaryPage = productPlan?.pages?.[0] || "Home";
+  const isSystemLike = productPlan?.output_mode !== "site";
+  const productAngle =
+    productPlan?.output_mode === "site"
+      ? "site completo"
+      : productPlan?.output_mode === "hybrid"
+        ? "site com blueprint de sistema"
+        : "blueprint de produto digital";
+  const plannerFeatures = (productPlan?.features || []).slice(0, 6);
+  const plannerPages = (productPlan?.pages || []).slice(0, 6);
+  const plannerEntities = (productPlan?.entities || []).slice(0, 6);
+  const plannerSchema = (productPlan?.database_schema || []).slice(0, 4);
 
   return {
     brandName,
-    brandTagline: `Especialistas em ${keyword} com foco em ${secondary}`,
+    brandTagline: `Especialistas em ${keyword} com foco em ${secondary} e em transformar a ideia em ${productAngle}`,
     hero: {
-      headline: `Transforme ${keyword} em crescimento real`,
-      subheadline: `Uma estrutura completa, alinhada ao seu briefing, para apresentar valor, gerar confianca e converter com mais consistencia.`,
+      headline: isSystemLike ? `Transforme ${keyword} em um sistema pronto para operar` : `Transforme ${keyword} em crescimento real`,
+      subheadline: isSystemLike
+        ? `Uma estrutura orientada a produto, com modulos, fluxos e paginas como ${primaryPage}, pensada para sair do prompt e virar operacao real.`
+        : `Uma estrutura completa, alinhada ao seu briefing, para apresentar valor, gerar confianca e converter com mais consistencia a partir de ${primaryPage}.`,
       cta: templateBlueprint?.sections?.find((section) => section.type === "hero")?.cta || "Quero comecar",
       image_keyword: `${profile.imageMood} ${keyword}`,
     },
     socialProof: {
-      title: `Negocios que aceleraram ${keyword}`,
-      logos: ["Atlas", "Nova", "Pulse", "Orbit", "Frame", "Spark"],
+      title: isSystemLike ? "Modulos pensados para negocio real" : `Negocios que aceleraram ${keyword}`,
+      logos: isSystemLike ? plannerEntities.map(titleCase) : ["Atlas", "Nova", "Pulse", "Orbit", "Frame", "Spark"],
     },
-    features: [
-      { title: `Estrategia para ${keyword}`, description: `Posicionamos a oferta com clareza e com foco no que realmente importa para ${secondary}.` },
-      { title: "Copy orientada a conversao", description: "Cada secao destaca beneficios, contexto e proximos passos sem parecer generica." },
-      { title: "Estrutura completa", description: "O site sai com secoes suficientes para apresentar valor, prova e chamada para acao." },
-      { title: "Ajustes guiados pelo briefing", description: "Cores, tom e detalhes pedidos no prompt entram no resultado final." },
-    ],
+    features: isSystemLike
+      ? plannerFeatures.map((feature, index) => ({
+          title: titleCase(String(feature).replace(/_/g, " ")),
+          description: `Modulo pensado para suportar ${String(feature).replace(/_/g, " ")} dentro de uma estrutura organizada e coerente com o briefing.`,
+          icon: ["layout", "shield", "chart", "users", "zap", "briefcase"][index % 6],
+        }))
+      : [
+          { title: `Estrategia para ${keyword}`, description: `Posicionamos a oferta com clareza e com foco no que realmente importa para ${secondary}.` },
+          { title: "Copy orientada a conversao", description: "Cada secao destaca beneficios, contexto e proximos passos sem parecer generica." },
+          { title: "Estrutura completa", description: "O site sai com secoes suficientes para apresentar valor, prova e chamada para acao." },
+          { title: "Ajustes guiados pelo briefing", description: "Cores, tom e detalhes pedidos no prompt entram no resultado final." },
+        ],
     testimonials: [
       { name: "Marina Costa", role: "CEO", content: `A nova estrutura deixou nossa oferta de ${keyword} muito mais facil de entender e vender.` },
       { name: "Felipe Ramos", role: "Head Comercial", content: `Conseguimos apresentar ${secondary} com muito mais clareza e credibilidade.` },
       { name: "Bruna Lima", role: "Fundadora", content: "O site ficou com cara de projeto pensado, nao apenas preenchido com blocos padrao." },
     ],
-    faq: [
-      { question: `Como voces aplicam ${keyword} no site?`, answer: `Traduzimos o briefing em secoes estrategicas, copy clara e uma apresentacao visual coerente.` },
-      { question: "Posso pedir ajustes depois?", answer: "Sim. A estrutura foi pensada para ser refinada com novas instrucoes sem quebrar o layout." },
-      { question: "Serve para qualquer nicho?", answer: `Sim. O sistema adapta a comunicacao para destacar ${keyword} dentro do seu contexto.` },
-      { question: "O site sai completo?", answer: "Sim. O objetivo e entregar uma pagina pronta, com narrativa, secoes e chamadas para acao." },
-    ],
-    plans: [
-      { name: "Essencial", price: "R$ 97", features: ["Estrutura base", "Copy inicial", "CTA principal"], recommended: false, cta: "Comecar" },
-      { name: "Profissional", price: "R$ 297", features: ["Tudo do Essencial", "Personalizacao visual", "Refinamento de oferta"], recommended: true, cta: "Quero esse" },
-      { name: "Avancado", price: "R$ 597", features: ["Tudo do Profissional", "Maior profundidade", "Acompanhamento"], recommended: false, cta: "Falar com time" },
-    ],
+    faq: isSystemLike
+      ? [
+          { question: "Quais modulos esse sistema cobre?", answer: `A estrutura inicial cobre ${plannerFeatures.slice(0, 3).join(", ") || "os modulos principais"} com base no seu prompt.` },
+          { question: "Ja nasce com paginas definidas?", answer: `Sim. O planner organiza paginas como ${plannerPages.slice(0, 4).join(", ")} para o fluxo fazer sentido.` },
+          { question: "Tem logica de dados?", answer: "Sim. O blueprint inclui entidades, papeis, schema inicial e regras de backend para orientar a implementacao." },
+          { question: "Posso evoluir depois?", answer: "Sim. A base ja nasce organizada para iterar auth, CRUD, dashboard e regras do negocio." },
+        ]
+      : [
+          { question: `Como voces aplicam ${keyword} no site?`, answer: `Traduzimos o briefing em secoes estrategicas, copy clara e uma apresentacao visual coerente.` },
+          { question: "Posso pedir ajustes depois?", answer: "Sim. A estrutura foi pensada para ser refinada com novas instrucoes sem quebrar o layout." },
+          { question: "Serve para qualquer nicho?", answer: `Sim. O sistema adapta a comunicacao para destacar ${keyword} dentro do seu contexto.` },
+          { question: "O site sai completo?", answer: "Sim. O objetivo e entregar uma pagina pronta, com narrativa, secoes e chamadas para acao." },
+        ],
+    plans: isSystemLike
+      ? [
+          { name: "MVP", price: "R$ 1.990", features: plannerPages.slice(0, 3), recommended: false, cta: "Planejar MVP" },
+          { name: "Growth", price: "R$ 4.990", features: plannerFeatures.slice(0, 4), recommended: true, cta: "Quero estruturar" },
+          { name: "Scale", price: "R$ 8.990", features: ["Arquitetura completa", "Painel admin", "Regras avancadas"], recommended: false, cta: "Falar com time" },
+        ]
+      : [
+          { name: "Essencial", price: "R$ 97", features: ["Estrutura base", "Copy inicial", "CTA principal"], recommended: false, cta: "Comecar" },
+          { name: "Profissional", price: "R$ 297", features: ["Tudo do Essencial", "Personalizacao visual", "Refinamento de oferta"], recommended: true, cta: "Quero esse" },
+          { name: "Avancado", price: "R$ 597", features: ["Tudo do Profissional", "Maior profundidade", "Acompanhamento"], recommended: false, cta: "Falar com time" },
+        ],
     products: [
       { name: `${titleCase(keyword)} Base`, price: "R$ 97", description: `Oferta inicial para quem quer comecar em ${keyword}.`, image_keyword: `${keyword} product` },
       { name: `${titleCase(keyword)} Pro`, price: "R$ 197", description: `Versao mais completa para acelerar ${secondary}.`, image_keyword: `${secondary} digital product` },
@@ -147,6 +184,15 @@ function createFallbackBrief({ analysis, profile, templateBlueprint }) {
       text: `${brandName}. Estrutura digital com foco em resultado.`,
       social_media: [{ platform: "instagram", url: "#" }, { platform: "linkedin", url: "#" }],
     },
+    productNarrative: {
+      output_mode: productPlan?.output_mode || "site",
+      pages: productPlan?.pages || [],
+      entities: productPlan?.entities || [],
+      features: productPlan?.features || [],
+      backend_logic: productPlan?.backend_logic || [],
+      frontend_blueprint: productPlan?.frontend_blueprint || [],
+      style: designSystem?.style || profile.visualVariant,
+    },
   };
 }
 
@@ -158,7 +204,7 @@ function buildSectionOrder(profile, analysis) {
   return uniq([...profile.sectionOrder, ...analysis.requestedSections]);
 }
 
-function buildNavbar(profile, brief) {
+function buildNavbar(profile, brief, analysis, productPlan, designSystem) {
   const labels = normalizeList(
     brief.navItems,
     profile.navLabels.map((label) => ({ label, url: makeAnchor(label) }))
@@ -173,10 +219,12 @@ function buildNavbar(profile, brief) {
     })),
     cta_text: brief.hero?.cta || brief.cta?.button_text || "Falar agora",
     visual_variant: profile.visualVariant,
+    layout_variant: designSystem?.section_variants?.navbar || "brand-nav",
+    product_mode: productPlan?.output_mode || "site",
   };
 }
 
-function buildHero(profile, brief, analysis) {
+function buildHero(profile, brief, analysis, productPlan, designSystem) {
   return {
     type: "hero",
     headline: limitText(brief.hero?.headline || `Transforme ${analysis.primaryKeyword} com uma pagina mais forte`, 120),
@@ -184,10 +232,13 @@ function buildHero(profile, brief, analysis) {
     cta: limitText(brief.hero?.cta || brief.cta?.button_text || "Quero comecar", 28),
     image_keyword: brief.hero?.image_keyword || `${profile.imageMood} ${analysis.primaryKeyword}`,
     visual_variant: profile.visualVariant,
+    section_variant: designSystem?.section_variants?.hero || "split-showcase",
+    eyebrow: productPlan?.output_mode === "system-blueprint" ? "Product blueprint" : productPlan?.output_mode === "hybrid" ? "Site + sistema" : "Nova estrutura",
+    proof_items: (productPlan?.features || []).slice(0, 3),
   };
 }
 
-function buildFeatureGrid(profile, brief) {
+function buildFeatureGrid(profile, brief, analysis, productPlan, designSystem) {
   const icons = ICON_SETS[profile.visualVariant] || ICON_SETS.conversion;
   const fallback = [
     { title: "Clareza de proposta", description: "A oferta aparece de forma objetiva, organizada e facil de entender." },
@@ -206,6 +257,8 @@ function buildFeatureGrid(profile, brief) {
       icon: item?.icon || icons[index % icons.length],
     })),
     visual_variant: profile.visualVariant,
+    card_variant: designSystem?.section_variants?.cards || "glass-border",
+    planner_features: (productPlan?.features || []).slice(0, 6),
   };
 }
 
@@ -228,7 +281,7 @@ function buildTestimonials(profile, brief) {
   };
 }
 
-function buildPricing(profile, brief) {
+function buildPricing(profile, brief, analysis, productPlan, designSystem) {
   const fallback = [
     { name: "Base", price: "R$ 97", features: ["Entrega inicial", "Estrutura principal", "Suporte base"], recommended: false, cta: "Comecar" },
     { name: "Pro", price: "R$ 297", features: ["Tudo do Base", "Refinamento", "Suporte prioritario"], recommended: true, cta: "Escolher Pro" },
@@ -245,6 +298,7 @@ function buildPricing(profile, brief) {
       cta: limitText(item?.cta || "Escolher plano", 28),
     })),
     visual_variant: profile.visualVariant,
+    card_variant: designSystem?.section_variants?.cards || "glass-border",
   };
 }
 
@@ -266,21 +320,31 @@ function buildFaq(profile, brief) {
   };
 }
 
-function buildCta(profile, brief) {
+function buildCta(profile, brief, analysis, productPlan, designSystem) {
   return {
     type: "cta-section",
     title: limitText(brief.cta?.title || "Vamos tirar sua ideia do papel?", 100),
     subtitle: limitText(brief.cta?.subtitle || "Crie uma pagina completa e alinhada ao seu objetivo.", 180),
     button_text: limitText(brief.cta?.button_text || "Criar agora", 28),
     visual_variant: profile.visualVariant,
+    button_variant: designSystem?.section_variants?.cta || "solid-primary",
+    output_mode: productPlan?.output_mode || "site",
   };
 }
 
-function buildProductCatalog(profile, brief, analysis) {
-  const fallback = createFallbackBrief({ analysis, profile, templateBlueprint: {} }).products;
+function buildProductCatalog(profile, brief, analysis, productPlan) {
+  const fallback =
+    productPlan?.output_mode !== "site"
+      ? (productPlan?.database_schema || []).slice(0, 6).map((table, index) => ({
+          name: titleCase(table.table),
+          price: `${(table.fields || []).length} campos`,
+          description: `Entidade base para o sistema, com foco em ${(table.fields || []).map((field) => field.name).slice(0, 3).join(", ")}.`,
+          image_keyword: `${table.table} dashboard ui ${index + 1}`,
+        }))
+      : createFallbackBrief({ analysis, profile, templateBlueprint: {}, productPlan, designSystem: {} }).products;
   return {
     type: "product-catalog",
-    title: brief.productsTitle || "Produtos e ofertas",
+    title: brief.productsTitle || (productPlan?.output_mode !== "site" ? "Estrutura de dados e modulos" : "Produtos e ofertas"),
     products: normalizeList(brief.products, fallback).slice(0, 6).map((item, index) => ({
       name: limitText(item?.name || `Produto ${index + 1}`, 40),
       price: formatPrice(item?.price || item?.value || ""),
@@ -291,11 +355,19 @@ function buildProductCatalog(profile, brief, analysis) {
   };
 }
 
-function buildProjectGallery(profile, brief, analysis) {
-  const fallback = createFallbackBrief({ analysis, profile, templateBlueprint: {} }).projects;
+function buildProjectGallery(profile, brief, analysis, productPlan) {
+  const fallback =
+    productPlan?.output_mode !== "site"
+      ? (productPlan?.pages || []).slice(0, 6).map((page, index) => ({
+          title: page,
+          description: `Pagina pensada para cobrir ${productPlan?.user_flows?.[index] || "uma etapa critica do fluxo"} com clareza e usabilidade.`,
+          image_keyword: `${page} saas dashboard screen`,
+          link: "#",
+        }))
+      : createFallbackBrief({ analysis, profile, templateBlueprint: {}, productPlan, designSystem: {} }).projects;
   return {
     type: "project-gallery",
-    title: brief.projectsTitle || "Projetos selecionados",
+    title: brief.projectsTitle || (productPlan?.output_mode !== "site" ? "Paginas e fluxos do produto" : "Projetos selecionados"),
     projects: normalizeList(brief.projects, fallback).slice(0, 6).map((item, index) => ({
       title: limitText(item?.title || `Projeto ${index + 1}`, 40),
       description: limitText(item?.description || "Descricao do projeto.", 170),
@@ -397,13 +469,13 @@ function buildPalette(templateBlueprint, analysis, profile) {
   };
 }
 
-function buildSiteFromBrief({ brief, analysis, profile, templateBlueprint }) {
-  const palette = buildPalette(templateBlueprint, analysis, profile);
-  const sectionOrder = buildSectionOrder(profile, analysis);
+function buildSiteFromBrief({ brief, analysis, profile, templateBlueprint, productPlan, designSystem, intent }) {
+  const palette = designSystem?.color_palette || buildPalette(templateBlueprint, analysis, profile);
+  const sectionOrder = uniq([...(productPlan?.sections || []), ...buildSectionOrder(profile, analysis)]);
   const sections = sectionOrder
     .map((type) => {
       const builder = BUILDERS[type];
-      return builder ? builder(profile, brief, analysis) : null;
+      return builder ? builder(profile, brief, analysis, productPlan, designSystem) : null;
     })
     .filter(Boolean);
 
@@ -414,11 +486,14 @@ function buildSiteFromBrief({ brief, analysis, profile, templateBlueprint }) {
       templateId: analysis.templateId,
       visual_variant: profile.visualVariant,
       keywords: extractKeywords(analysis.combinedPrompt).slice(0, 10),
+      intent,
+      product_plan: productPlan,
+      design_system: designSystem,
     },
     sections,
   };
 
-  return applyStyleDirectives(site, analysis.styleDirectives);
+  return applyStyleDirectives(site, analysis.styleDirectives, designSystem);
 }
 
 module.exports = {

@@ -8,6 +8,7 @@ interface NavbarProps {
     links: { label: string; url: string }[];
     cta_text?: string;
     visual_variant?: string;
+    layout_variant?: string;
   };
   primaryColor: string;
 }
@@ -17,6 +18,7 @@ export const Navbar: React.FC<NavbarProps> = ({ content, primaryColor }) => {
   const asText = (value: any, fallback: string) =>
     typeof value === "string" ? value : value?.name || value?.title || value?.label || fallback;
   const variant = String(content.visual_variant || "").toLowerCase();
+  const layoutVariant = String(content.layout_variant || "").toLowerCase();
   const isLight = variant === "lead" || variant === "catalog" || variant === "corporate";
 
   const navLinks = (Array.isArray(content?.links) ? content.links : []).slice(0, 4).map((link: any, i: number) => ({
@@ -44,7 +46,7 @@ export const Navbar: React.FC<NavbarProps> = ({ content, primaryColor }) => {
 
         <div className="hidden md:flex items-center gap-3">
           <span className="text-xs text-emerald-300 bg-emerald-300/10 px-3 py-1 rounded-full border border-emerald-300/30">
-            Online now
+            {layoutVariant === "product-nav" ? "Product ready" : "Online now"}
           </span>
           <Button className="rounded-full h-9 px-5 text-white" style={{ backgroundColor: primaryColor }}>
             {asText(content.cta_text, "Contact us")}

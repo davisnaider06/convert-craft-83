@@ -2,7 +2,10 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const Groq = require("groq-sdk");
 const { getTemplateBlueprint } = require("../utils/templates");
 const { getTemplateProfile } = require("./siteGeneration/templateProfiles");
+const { analyzeIntent } = require("./siteGeneration/intentAnalyzer");
 const { analyzePrompt } = require("./siteGeneration/promptAnalyzer");
+const { planProduct } = require("./siteGeneration/productPlanner");
+const { createDesignBlueprint } = require("./siteGeneration/designEngine");
 const { createFallbackBrief, buildSiteFromBrief } = require("./siteGeneration/sectionFactory");
 
 require("dotenv").config();
@@ -77,7 +80,7 @@ async function generateJsonWithFallback(params) {
   return generateJsonWithGroq(params);
 }
 
-function buildBriefPrompt({ analysis, profile, templateBlueprint }) {
+function buildBriefPrompt({ analysis, intent, productPlan, designSystem, profile, templateBlueprint }) {
   return `
 Voce recebe um briefing de website e deve responder somente JSON valido.
 Nao invente codigo HTML, CSS ou React.
@@ -122,14 +125,18 @@ Retorne no formato:
 Regras:
 - Escreva em portugues do Brasil.
 - O site deve refletir fielmente o briefing.
+- Se o pedido tiver cara de sistema, trate como uma apresentacao de produto real, com modulos e valor percebido claros.
 - Se o prompt pedir cor, gradiente, tom ou detalhe visual, isso deve aparecer no conteudo sugerido.
-- Evite textos genéricos e placeholders.
+- Evite textos genericos e placeholders.
 - Secoes mais importantes para este template: ${profile.sectionOrder.join(", ")}.
 - Linguagem esperada: ${profile.voice}.
 - Varia o resultado conforme o tipo do template, nao replique a mesma estrutura textual em todos.
 - Use estes itens obrigatorios do briefing sempre que fizer sentido: ${analysis.mustHave.join(" | ") || "nenhum"}.
 - Keywords centrais: ${analysis.keywords.slice(0, 8).join(", ") || "nenhuma"}.
 - Diretrizes visuais obrigatorias: ${JSON.stringify(analysis.styleDirectives)}.
+- Classificacao de intencao: ${JSON.stringify(intent)}.
+- Product planner: ${JSON.stringify(productPlan)}.
+- Design system obrigatorio: ${JSON.stringify(designSystem)}.
 - Blueprint do template: ${JSON.stringify(templateBlueprint)}.
 
 Briefing do usuario:
@@ -167,6 +174,13 @@ function validateGeneratedSite(site, analysis, profile) {
     if (!present) issues.push(`Secao ausente: ${type}.`);
   }
 
+  for (const type of (site.metadata?.product_plan?.sections || []).slice(0, 5)) {
+    const present = site.sections.some(
+      (section) => String(section?.type || "").toLowerCase() === String(type || "").toLowerCase(),
+    );
+    if (!present) issues.push(`Secao planejada ausente: ${type}.`);
+  }
+
   if (analysis.styleDirectives.requestedColors.length > 0) {
     const palette = [site.colors?.primary, site.colors?.secondary, site.colors?.accent].map((item) => String(item || "").toLowerCase());
     const missingColor = analysis.styleDirectives.requestedColors.some((color) => !palette.includes(String(color).toLowerCase()));
@@ -196,6 +210,12 @@ async function gerarSite(prompt, templateId, generationContext = null) {
 
   const templateBlueprint = getTemplateBlueprint(templateId, category);
   const profile = getTemplateProfile(templateId, category);
+  const intent = analyzeIntent({
+    prompt: userPrompt,
+    customizations,
+    templateId,
+    category,
+  });
   const analysis = analyzePrompt({
     prompt: userPrompt,
     customizations,
@@ -204,10 +224,35 @@ async function gerarSite(prompt, templateId, generationContext = null) {
     style,
     mustHave: generationContext?.mustHave || [],
   });
+  const productPlan = planProduct({
+    intent,
+    analysis,
+    profile,
+    templateBlueprint,
+  });
+  const designSystem = createDesignBlueprint({
+    intent,
+    analysis,
+    profile,
+    templateBlueprint,
+  });
 
-  const fallbackBrief = createFallbackBrief({ analysis, profile, templateBlueprint });
+  const fallbackBrief = createFallbackBrief({
+    analysis,
+    profile,
+    templateBlueprint,
+    productPlan,
+    designSystem,
+  });
   const systemPrompt = "Voce e um diretor de criacao e copywriter de websites premium. Responda somente JSON valido.";
-  const userBriefPrompt = buildBriefPrompt({ analysis, profile, templateBlueprint });
+  const userBriefPrompt = buildBriefPrompt({
+    analysis,
+    intent,
+    productPlan,
+    designSystem,
+    profile,
+    templateBlueprint,
+  });
   const aiBrief = await generateJsonWithFallback({
     systemPrompt,
     userPrompt: userBriefPrompt,
@@ -220,6 +265,9 @@ async function gerarSite(prompt, templateId, generationContext = null) {
     analysis,
     profile,
     templateBlueprint,
+    productPlan,
+    designSystem,
+    intent,
   });
 
   let validation = validateGeneratedSite(site, analysis, profile);
@@ -245,6 +293,9 @@ Retorne somente JSON valido com a mesma estrutura do briefing.
         analysis,
         profile,
         templateBlueprint,
+        productPlan,
+        designSystem,
+        intent,
       });
       validation = validateGeneratedSite(site, analysis, profile);
     }

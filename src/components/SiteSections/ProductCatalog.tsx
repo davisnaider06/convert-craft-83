@@ -23,6 +23,7 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({ content, primary
   if (products.length === 0) return null;
   const variant = String(content.visual_variant || "").toLowerCase();
   const premium = variant === "premium";
+  const systemLike = String(content.title || "").toLowerCase().includes("dados") || String(content.title || "").toLowerCase().includes("modulos");
   const sectionTone = premium ? "bg-slate-950" : "bg-slate-50";
   const headingTone = premium ? "text-slate-50" : "text-slate-950";
   const cardTone = premium
@@ -64,6 +65,11 @@ export const ProductCatalog: React.FC<ProductCatalogProps> = ({ content, primary
                     <ShoppingBag size={20} />
                   </button>
                 </div>
+                {systemLike ? (
+                  <div className={`mt-4 text-xs ${copyTone}`}>
+                    Base estrutural do produto
+                  </div>
+                ) : null}
               </div>
             </div>
           ))}

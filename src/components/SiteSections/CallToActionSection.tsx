@@ -7,6 +7,7 @@ interface CallToActionProps {
     subtitle?: string;
     button_text: string;
     visual_variant?: string;
+    button_variant?: string;
     background_style?: string;
     gradient_from?: string;
     gradient_to?: string;
@@ -20,6 +21,7 @@ export const CallToActionSection: React.FC<CallToActionProps> = ({ content, prim
   const gradientFrom = content.gradient_from || primaryColor;
   const gradientTo = content.gradient_to || "#22d3ee";
   const variant = String(content.visual_variant || "").toLowerCase();
+  const buttonVariant = String(content.button_variant || "").toLowerCase();
   const isLight = variant === "lead" || variant === "catalog" || variant === "corporate";
   const sectionTone = isLight ? "bg-slate-50" : "bg-[#040816]";
   const panelTone = isLight
@@ -33,6 +35,12 @@ export const CallToActionSection: React.FC<CallToActionProps> = ({ content, prim
     variant === "catalog" ? "Explorar oferta" :
     variant === "corporate" ? "Conhecer empresa" :
     "Learn more";
+  const primaryButtonStyle =
+    buttonVariant === "gradient-solid"
+      ? { backgroundImage: `linear-gradient(90deg, ${gradientFrom}, ${gradientTo})`, color: "#ffffff" }
+      : buttonVariant === "glow-outline"
+        ? { backgroundColor: "transparent", color: primaryColor, border: `1px solid ${primaryColor}` }
+        : undefined;
 
   return (
     <section
@@ -45,7 +53,10 @@ export const CallToActionSection: React.FC<CallToActionProps> = ({ content, prim
         </h2>
         {content.subtitle && <p className={`text-lg mb-8 ${copyTone}`}>{content.subtitle}</p>}
         <div className="flex items-center justify-center gap-3 flex-wrap">
-          <Button className="h-11 rounded-xl px-8 bg-white text-slate-900 hover:bg-slate-100">
+          <Button
+            className={`h-11 rounded-xl px-8 ${buttonVariant === "glow-outline" ? "hover:opacity-90" : "bg-white text-slate-900 hover:bg-slate-100"}`}
+            style={primaryButtonStyle}
+          >
             {content.button_text}
           </Button>
           <Button variant="ghost" className={`h-11 rounded-xl px-8 ${secondaryButtonClass}`}>

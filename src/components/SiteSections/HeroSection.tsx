@@ -10,6 +10,9 @@ interface HeroSectionProps {
     cta: string;
     image_keyword?: string;
     visual_variant?: string;
+    section_variant?: string;
+    eyebrow?: string;
+    proof_items?: string[];
     background_style?: string;
     gradient_from?: string;
     gradient_to?: string;
@@ -22,6 +25,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ content, primaryColor,
   const seed = encodeURIComponent(content.image_keyword || content.headline || "saas abstract");
   const heroImageUrl = `https://picsum.photos/seed/${seed}/1800/900`;
   const variant = String(content.visual_variant || "").toLowerCase();
+  const sectionVariant = String(content.section_variant || "").toLowerCase();
+  const proofItems = Array.isArray(content.proof_items) ? content.proof_items.filter(Boolean).slice(0, 3) : [];
 
   const wantsGradient = String(content.background_style || "").toLowerCase() === "gradient";
   const gradientFrom = content.gradient_from || primaryColor;
@@ -54,6 +59,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ content, primaryColor,
     variant === "lead" || variant === "catalog" || variant === "corporate"
       ? "border-slate-200 bg-white shadow-[0_25px_80px_rgba(15,23,42,0.12)]"
       : "border-white/10 bg-[#0b1228] shadow-[0_0_60px_rgba(37,99,235,0.3)]";
+  const heroLayoutClass =
+    sectionVariant === "compact-centered"
+      ? "max-w-4xl"
+      : sectionVariant === "diagonal-split"
+        ? "max-w-6xl"
+        : "max-w-5xl";
+  const isLightButton = variant === "lead" || variant === "catalog" || variant === "corporate";
 
   return (
     <section className={`relative pt-20 pb-12 px-4 overflow-hidden ${sectionTone}`}>
@@ -67,9 +79,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ content, primaryColor,
               : { backgroundImage: "radial-gradient(circle at 50% 0%, rgba(37,99,235,0.25), transparent 45%)" }
         }
       />
-      <div className="container mx-auto text-center relative z-10 max-w-5xl">
+      <div className={`container mx-auto text-center relative z-10 ${heroLayoutClass}`}>
         <Badge className={`mb-5 ${variant === "lead" || variant === "catalog" || variant === "corporate" ? "bg-white text-slate-700 border-slate-200" : "bg-white/5 text-slate-200 border-white/10 hover:bg-white/10"}`}>
-          {badgeLabel}
+          {content.eyebrow || badgeLabel}
         </Badge>
         <h1 className={`font-semibold tracking-tight mb-6 leading-[1.05] ${titleTone} ${isMobile ? "text-4xl" : "text-5xl md:text-7xl"}`}>
           {content.headline || "Transform Your Business With Our SaaS Solution"}
@@ -79,10 +91,18 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ content, primaryColor,
         </p>
 
         <div className="flex items-center justify-center gap-3 flex-wrap">
-          <Button size={isMobile ? "default" : "lg"} className="rounded-xl px-8 h-11" style={{ backgroundColor: "#fff", color: "#0f172a" }}>
+          <Button
+            size={isMobile ? "default" : "lg"}
+            className="rounded-xl px-8 h-11"
+            style={{ backgroundColor: isLightButton ? primaryColor : "#fff", color: isLightButton ? "#fff" : "#0f172a" }}
+          >
             {content.cta || "Get started"}
           </Button>
-          <Button size={isMobile ? "default" : "lg"} variant="ghost" className="rounded-xl px-8 h-11 text-slate-100 hover:bg-white/10">
+          <Button
+            size={isMobile ? "default" : "lg"}
+            variant="ghost"
+            className={`rounded-xl px-8 h-11 ${isLightButton ? "text-slate-700 hover:bg-slate-100" : "text-slate-100 hover:bg-white/10"}`}
+          >
             Request a Demo <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
@@ -92,15 +112,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ content, primaryColor,
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-6">
           <div className={`rounded-xl px-4 py-3 text-sm flex items-center gap-2 ${panelTone}`}>
             <Clock3 className="h-4 w-4" style={{ color: primaryColor }} />
-            4-6 week delivery
+            {proofItems[0] || "4-6 week delivery"}
           </div>
           <div className={`rounded-xl px-4 py-3 text-sm flex items-center gap-2 ${panelTone}`}>
             <Sparkles className="h-4 w-4" style={{ color: primaryColor }} />
-            Transparent pricing
+            {proofItems[1] || "Transparent pricing"}
           </div>
           <div className={`rounded-xl px-4 py-3 text-sm flex items-center gap-2 ${panelTone}`}>
             <Shield className="h-4 w-4" style={{ color: primaryColor }} />
-            Money back guarantee
+            {proofItems[2] || "Money back guarantee"}
           </div>
         </div>
 
