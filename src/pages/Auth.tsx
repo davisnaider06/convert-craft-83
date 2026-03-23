@@ -1,51 +1,33 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate, Link } from "react-router-dom";
-import { SignIn, SignUp, useUser } from "@clerk/clerk-react"; // USAR ISSO
-import { AnimatedBackground } from "@/components/boder/AnimatedBackground";
+import { Link, useNavigate } from "react-router-dom";
+import { SignIn, SignUp, useUser } from "@clerk/clerk-react";
 import { ArrowLeft } from "lucide-react";
+import { AnimatedBackground } from "@/components/boder/AnimatedBackground";
 import { premiumToast } from "@/components/ui/premium-toast";
 import boderLogo from "@/assets/boder-logo.png";
 
 export default function Auth() {
-  // Simplifiquei o mode. O Clerk cuida do "Forgot Password" sozinho.
   const [mode, setMode] = useState<"login" | "register">("login");
-  
-  // useUser substitui o seu antigo useAuth para pegar dados
   const { user, isLoaded, isSignedIn } = useUser();
   const navigate = useNavigate();
 
-  // Lógica do Plano Pendente (Mantida e adaptada)
   useEffect(() => {
-    const processPendingPlan = async () => {
-      if (!isLoaded || !isSignedIn || !user) return;
+    if (!isLoaded || !isSignedIn || !user) return;
 
-      const pendingPlan = sessionStorage.getItem("pendingPlan");
-      
-      // Se já estiver logado e não tiver plano pendente, vai para create
-      if (!pendingPlan) {
-        navigate("/create");
-        return;
-      }
+    const pendingPlan = sessionStorage.getItem("pendingPlan");
+    if (!pendingPlan) {
+      navigate("/create", { replace: true });
+      return;
+    }
 
-      sessionStorage.removeItem("pendingPlan");
-      
-      // SIMULAÇÃO DE CHECKOUT
-      console.log("Processando plano pendente:", pendingPlan);
-      premiumToast.success("Login efetuado!", "Redirecionando para pagamento...");
-      
-      setTimeout(() => {
-         // Aqui entra seu link real de pagamento futuramente
-         window.open("https://google.com", "_blank"); 
-         navigate("/create");
-      }, 1500);
-    };
-
-    processPendingPlan();
-  }, [isLoaded, isSignedIn, user, navigate]);
+    sessionStorage.removeItem("pendingPlan");
+    premiumToast.success("Login efetuado!", "Retomando sua assinatura.");
+    navigate(`/pricing?plan=${pendingPlan}&autostart=1`, { replace: true });
+  }, [isLoaded, isSignedIn, navigate, user]);
 
   return (
-    <div className="relative min-h-screen bg-background overflow-hidden text-foreground">
+    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
       <AnimatedBackground />
 
       <div className="relative flex min-h-screen items-center justify-center px-4 py-12">
@@ -55,24 +37,17 @@ export default function Auth() {
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
-          {/* Logo */}
           <div className="mb-8 flex flex-col items-center">
             <Link to="/">
-              {boderLogo ? (
-                <motion.img
-                    src={boderLogo}
-                    alt="Boder AI"
-                    className="h-16 w-auto mb-4"
-                    whileHover={{ scale: 1.05 }}
-                />
-              ) : (
-                <h1 className="text-4xl font-bold mb-4">Boder AI</h1>
-              )}
+              <motion.img
+                src={boderLogo}
+                alt="Boder AI"
+                className="mb-4 h-16 w-auto"
+                whileHover={{ scale: 1.05 }}
+              />
             </Link>
           </div>
 
-          {/* Card Clerk */}
-          {/* Removemos a borda manual e deixamos o Clerk cuidar do card, ou envolvemos ele */}
           <div className="flex justify-center">
             <AnimatePresence mode="wait">
               <motion.div
@@ -84,41 +59,39 @@ export default function Auth() {
                 className="w-full"
               >
                 {mode === "login" ? (
-                  <SignIn 
+                  <SignIn
                     appearance={{
-                        elements: {
-                            card: "bg-card/80 backdrop-blur-sm border border-border shadow-xl",
-                            headerTitle: "text-foreground",
-                            headerSubtitle: "text-muted-foreground",
-                            socialButtonsBlockButton: "text-foreground border-border hover:bg-muted",
-                            formFieldLabel: "text-foreground",
-                            formFieldInput: "bg-background text-foreground border-border",
-                            footerActionText: "text-muted-foreground",
-                            footerActionLink: "text-primary hover:text-primary/90"
-                        }
+                      elements: {
+                        card: "bg-card/80 backdrop-blur-sm border border-border shadow-xl",
+                        headerTitle: "text-foreground",
+                        headerSubtitle: "text-muted-foreground",
+                        socialButtonsBlockButton: "text-foreground border-border hover:bg-muted",
+                        formFieldLabel: "text-foreground",
+                        formFieldInput: "bg-background text-foreground border-border",
+                        footerActionText: "text-muted-foreground",
+                        footerActionLink: "text-primary hover:text-primary/90",
+                      },
                     }}
-                    routing="path" 
-                    path="/auth" 
+                    routing="path"
+                    path="/auth"
                     signUpUrl="#"
-                    // Truque para mudar o estado local ao clicar em "Sign Up" no footer do Clerk
-                    // Se preferir o roteamento nativo do Clerk, configure as rotas no App.tsx
                   />
                 ) : (
-                  <SignUp 
+                  <SignUp
                     appearance={{
-                        elements: {
-                            card: "bg-card/80 backdrop-blur-sm border border-border shadow-xl",
-                            headerTitle: "text-foreground",
-                            headerSubtitle: "text-muted-foreground",
-                            socialButtonsBlockButton: "text-foreground border-border hover:bg-muted",
-                            formFieldLabel: "text-foreground",
-                            formFieldInput: "bg-background text-foreground border-border",
-                            footerActionText: "text-muted-foreground",
-                            footerActionLink: "text-primary hover:text-primary/90"
-                        }
+                      elements: {
+                        card: "bg-card/80 backdrop-blur-sm border border-border shadow-xl",
+                        headerTitle: "text-foreground",
+                        headerSubtitle: "text-muted-foreground",
+                        socialButtonsBlockButton: "text-foreground border-border hover:bg-muted",
+                        formFieldLabel: "text-foreground",
+                        formFieldInput: "bg-background text-foreground border-border",
+                        footerActionText: "text-muted-foreground",
+                        footerActionLink: "text-primary hover:text-primary/90",
+                      },
                     }}
-                    routing="path" 
-                    path="/auth" 
+                    routing="path"
+                    path="/auth"
                     signInUrl="#"
                   />
                 )}
@@ -126,24 +99,22 @@ export default function Auth() {
             </AnimatePresence>
           </div>
 
-          {/* Botão de Alternar Manual (Caso queira forçar a troca visualmente fora do componente) */}
-          <div className="mt-6 text-center text-sm bg-card/50 p-4 rounded-lg border border-border/50 backdrop-blur-sm">
-             <p className="text-muted-foreground mb-2">
-                {mode === "login" ? "Ainda não tem conta?" : "Já tem uma conta?"}
-             </p>
-             <button 
-                onClick={() => setMode(mode === "login" ? "register" : "login")}
-                className="text-primary font-bold hover:underline"
-             >
-                {mode === "login" ? "Criar conta agora" : "Fazer Login"}
-             </button>
+          <div className="mt-6 rounded-lg border border-border/50 bg-card/50 p-4 text-center text-sm">
+            <p className="mb-2 text-muted-foreground">
+              {mode === "login" ? "Ainda não tem conta?" : "Já tem uma conta?"}
+            </p>
+            <button
+              onClick={() => setMode(mode === "login" ? "register" : "login")}
+              className="font-bold text-primary hover:underline"
+            >
+              {mode === "login" ? "Criar conta agora" : "Fazer login"}
+            </button>
           </div>
 
-          {/* Back to home */}
           <div className="mt-6 text-center">
             <Link
               to="/"
-              className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-2"
+              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
               Voltar para o início
@@ -154,5 +125,3 @@ export default function Auth() {
     </div>
   );
 }
-
-

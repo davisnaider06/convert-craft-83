@@ -1,7 +1,12 @@
 const { createRemoteJWKSet, jwtVerify } = require("jose");
 
-const clerkIssuer = process.env.CLERK_ISSUER;
-const clerkJwksUrl = process.env.CLERK_JWKS_URL || (clerkIssuer ? `${clerkIssuer}/.well-known/jwks.json` : null);
+const clerkIssuer =
+  process.env.CLERK_ISSUER ||
+  process.env.CLERK_JWT_ISSUER ||
+  process.env.CLERK_ISSUER_URL;
+const clerkJwksUrl =
+  process.env.CLERK_JWKS_URL ||
+  (clerkIssuer ? new URL("/.well-known/jwks.json", clerkIssuer).toString() : null);
 
 let jwks = null;
 if (clerkJwksUrl) {
@@ -18,7 +23,8 @@ async function requireAuth(req, res, next) {
   try {
     if (!jwks || !clerkIssuer) {
       return res.status(500).json({
-        error: "Servidor sem configuração de autenticação (CLERK_ISSUER/CLERK_JWKS_URL).",
+        error:
+          "Servidor sem configuracao de autenticacao. Defina CLERK_ISSUER (ou CLERK_JWT_ISSUER) e CLERK_JWKS_URL opcional.",
       });
     }
 

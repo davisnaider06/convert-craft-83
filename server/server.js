@@ -1,9 +1,12 @@
+require("dotenv").config();
+
 const express = require('express');
 const cors = require('cors');
 const apiRoutes = require('./src/routes/api');
 const { requireAuth } = require("./src/middlewares/auth");
 
 const generatorController = require("./src/controllers/generatorController");
+const paymentsController = require("./src/controllers/paymentsController");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -13,6 +16,9 @@ app.use(express.json());
 
 // Usa as rotas
 app.use('/api', apiRoutes);
+
+// Webhook público do gateway
+app.post("/api/payments/webhook/risepay", paymentsController.handleRisePayWebhook);
 
 // Rota para publicar (Protegida/Privada)
 app.post("/api/sites/publish", requireAuth, generatorController.publishSite);

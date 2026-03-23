@@ -8,15 +8,14 @@ datasource db {
 }
 
 model User {
-  id        String   @id // ID que vem do Clerk/Auth
-  email     String   @unique
-  credits   Int      @default(15) // Começa com 15
-  planType  String   @default("free") // free, pro, enterprise
-  createdAt DateTime @default(now())
-
-  Sites     Site[]
-  
+  id         String               @id
+  email      String               @unique
+  credits    Int                  @default(15)
+  planType   String               @default("free")
+  createdAt  DateTime             @default(now())
+  Sites      Site[]
   generations GenerationLog[]
+  payments   PaymentTransaction[]
 }
 
 model GenerationLog {
@@ -24,9 +23,9 @@ model GenerationLog {
   userId    String
   prompt    String
   cost      Int
-  modelUsed String   // "gemini" ou "groq"
+  modelUsed String
   createdAt DateTime @default(now())
-  
+
   user      User     @relation(fields: [userId], references: [id])
 }
 
@@ -36,12 +35,39 @@ model Site {
   user          User     @relation(fields: [userId], references: [id])
   name          String?
   description   String?
-  content       Json?           // Metadados JSON do site
-  html_content  String?         // HTML completo do site
+  content       Json?
+  html_content  String?
   is_published  Boolean  @default(false)
-  subdomain     String?  @unique  
+  subdomain     String?  @unique
   custom_domain String?
   published_at  DateTime?
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
+}
+
+model PaymentTransaction {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+  gateway           String   @default("risepay")
+  externalId        String   @unique
+  externalReference String?  @unique
+  kind              String
+  planId            String?
+  creditsAmount     Int?
+  quantity          Int?
+  amount            Float
+  currency          String   @default("BRL")
+  paymentMethod     String
+  status            String
+  credited          Boolean  @default(false)
+  creditedAt        DateTime?
+  checkoutUrl       String?
+  boletoUrl         String?
+  boletoBarcode     String?
+  pixQrCode         String?
+  rawResponse       Json?
+  rawLastStatus     Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

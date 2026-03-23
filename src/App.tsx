@@ -135,7 +135,12 @@ const App = () => {
           <PublicSiteViewer subdomain={subdomain} />
         ) : (
           // ROTA 2: É O SEU SAAS (DASHBOARD, STUDIO, ETC)
-          <BrowserRouter>
+          <BrowserRouter
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true,
+            }}
+          >
             <Routes>
               {/* ==================== ROTAS PÚBLICAS ==================== */}
               <Route path="/" element={<Landing />} />
