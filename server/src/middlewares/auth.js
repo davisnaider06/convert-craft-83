@@ -1,6 +1,11 @@
 const { createRemoteJWKSet, jwtVerify } = require("jose");
 
-const explicitIssuer = process.env.CLERK_ISSUER || null;
+const explicitIssuer = normalizeIssuer(
+  process.env.CLERK_ISSUER ||
+    process.env.CLERK_JWT_ISSUER ||
+    process.env.CLERK_ISSUER_URL ||
+    null,
+);
 const explicitJwksUrl = process.env.CLERK_JWKS_URL || null;
 const jwksCache = new Map();
 
@@ -17,8 +22,7 @@ function decodeJwtPayload(token) {
     const payloadBase64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
     const pad = payloadBase64.length % 4;
     const normalized = pad ? payloadBase64 + "=".repeat(4 - pad) : payloadBase64;
-    const json = Buffer.from(normalized, "base64").toString("utf8");
-    return JSON.parse(json);
+    return JSON.parse(Buffer.from(normalized, "base64").toString("utf8"));
   } catch {
     return null;
   }
@@ -44,29 +48,32 @@ async function requireAuth(req, res, next) {
   try {
     const token = getBearerToken(req);
     if (!token) {
-      return res.status(401).json({ error: "Token de autenticação ausente." });
+      return res.status(401).json({ error: "Token de autenticacao ausente." });
     }
 
     const decoded = decodeJwtPayload(token);
-    const tokenIssuer = normalizeIssuer(decoded?.iss);
-    const issuer = normalizeIssuer(explicitIssuer || tokenIssuer);
+    const issuer = normalizeIssuer(explicitIssuer || decoded?.iss);
     const jwks = getJwksForIssuer(issuer);
 
     if (!issuer || !jwks) {
       return res.status(401).json({
-        error: "Não foi possível validar autenticação (issuer ausente).",
+        error: "Nao foi possivel validar autenticacao (issuer ausente).",
       });
     }
 
     const { payload } = await jwtVerify(token, jwks, { issuer });
     if (!payload?.sub) {
-      return res.status(401).json({ error: "Token inválido (subject ausente)." });
+      return res.status(401).json({ error: "Token invalido (subject ausente)." });
     }
 
-    req.auth = { userId: String(payload.sub), payload };
+    req.auth = {
+      userId: String(payload.sub),
+      payload,
+    };
+
     return next();
   } catch {
-    return res.status(401).json({ error: "Não autenticado." });
+    return res.status(401).json({ error: "Nao autenticado." });
   }
 }
 

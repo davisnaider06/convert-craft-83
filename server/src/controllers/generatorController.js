@@ -96,7 +96,7 @@ const getUserData = async (req, res) => {
       return res.status(403).json({ error: "Acesso negado para este usuário." });
     }
 
-    const { user } = await userService.verificarSaldo(userId, email, "");
+    const user = await userService.ensureUser(userId, email);
     res.json({ credits: user.credits, plan: user.planType });
   } catch (error) {
     res.status(500).json({ error: error.message });

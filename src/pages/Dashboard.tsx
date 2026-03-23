@@ -65,9 +65,9 @@ export default function Dashboard() {
   });
 
   const [credits, setCredits] = useState<number | string>("-");
+  const [backendPlan, setBackendPlan] = useState<string>("free");
 
-  // Pega o plano do metadata. Se não existir, assume "free".
-  const plan = (user?.publicMetadata?.plan as string) ?? "free";
+  const plan = backendPlan;
 
   // Busca o saldo inicial
   useEffect(() => {
@@ -78,9 +78,11 @@ export default function Dashboard() {
           if (!res.ok) throw new Error("Falha ao conectar no servidor");
           const data = await res.json();
           setCredits(data.credits);
+          setBackendPlan(data.plan || "free");
         } catch (error) {
           console.warn("Erro ao buscar créditos:", error);
           setCredits("?"); 
+          setBackendPlan("free");
         }
       }
     }
@@ -151,11 +153,8 @@ export default function Dashboard() {
 
   const handleManageSubscription = async () => {
     setIsManagingSubscription(true);
-    // Simula abertura do portal
-    setTimeout(() => {
-      alert("Portal de Assinatura (Simulado)");
-      setIsManagingSubscription(false);
-    }, 1000);
+    navigate("/pricing");
+    setIsManagingSubscription(false);
   };
 
   const isPremium = plan !== "free";
