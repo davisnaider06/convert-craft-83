@@ -95,34 +95,7 @@ function buildCustomer({ userId, email, name, cpf, phone }) {
   };
 }
 
-async function createCheckout({ userId, email, name, cpf, phone, kind, planId, quantity }) {
-  if (!isConfigured()) {
-    throw createRisePayError("Rise Pay nao configurado. Defina RISEPAY_API_TOKEN.", {
-      code: "RISEPAY_MISSING_CONFIG",
-    });
-  }
-
-  const checkout = getCheckoutConfig({ kind, planId, quantity });
-  const externalId = `${userId}-${Date.now()}`;
-  const customer = buildCustomer({ userId, email, name, cpf, phone });
-
-  const payload = {
-    amount: checkout.amount,
-    currency: checkout.currency,
-    externalReference: externalId,
-    postBackUrl: RISEPAY_SUCCESS_URL || undefined,
-    payment: {
-      method: RISEPAY_PAYMENT_METHOD,
-      expiresAt: RISEPAY_PAYMENT_METHOD === "pix" ? RISEPAY_PIX_EXPIRES_HOURS : undefined,
-    },
-    customer,
-    metadata: {
-      userId,
-      ...checkout.metadata,
-      cancelUrl: RISEPAY_CANCEL_URL || undefined,
-    },
-  };
-
+async function performRisePayRequest(payload) {
   const response = await fetch(`${RISEPAY_API_BASE}${RISEPAY_CHECKOUT_PATH}`, {
     method: "POST",
     headers: {
@@ -140,14 +113,110 @@ async function createCheckout({ userId, email, name, cpf, phone, kind, planId, q
     data = { raw };
   }
 
-  if (!response.ok) {
+  return { response, data };
+}
+
+function buildPayloadVariants({ checkout, externalId, customer, userId }) {
+  const paymentBase = { method: RISEPAY_PAYMENT_METHOD };
+  if (RISEPAY_PAYMENT_METHOD === "pix") {
+    paymentBase.expiresAt = RISEPAY_PIX_EXPIRES_HOURS;
+  }
+
+  return [
+    {
+      label: "full",
+      payload: {
+        amount: checkout.amount,
+        currency: checkout.currency,
+        externalReference: externalId,
+        postBackUrl: RISEPAY_SUCCESS_URL || undefined,
+        payment: paymentBase,
+        customer,
+        metadata: {
+          userId,
+          ...checkout.metadata,
+          cancelUrl: RISEPAY_CANCEL_URL || undefined,
+        },
+      },
+    },
+    {
+      label: "minimal-with-currency",
+      payload: {
+        amount: checkout.amount,
+        currency: checkout.currency,
+        payment: paymentBase,
+        customer,
+      },
+    },
+    {
+      label: "minimal-no-currency",
+      payload: {
+        amount: checkout.amount,
+        payment: paymentBase,
+        customer,
+      },
+    },
+    {
+      label: "formatted-customer",
+      payload: {
+        amount: checkout.amount,
+        payment: paymentBase,
+        customer: {
+          name: customer.name,
+          email: customer.email,
+          cpf: String(customer.cpf || ""),
+          phone: String(customer.phone || ""),
+        },
+      },
+    },
+  ];
+}
+
+async function createCheckout({ userId, email, name, cpf, phone, kind, planId, quantity }) {
+  if (!isConfigured()) {
+    throw createRisePayError("Rise Pay nao configurado. Defina RISEPAY_API_TOKEN.", {
+      code: "RISEPAY_MISSING_CONFIG",
+    });
+  }
+
+  const checkout = getCheckoutConfig({ kind, planId, quantity });
+  const externalId = `${userId}-${Date.now()}`;
+  const customer = buildCustomer({ userId, email, name, cpf, phone });
+  const payloadVariants = buildPayloadVariants({ checkout, externalId, customer, userId });
+
+  let data = null;
+  let successfulPayload = null;
+  let lastError = null;
+
+  for (const attempt of payloadVariants) {
+    const { response, data: responseData } = await performRisePayRequest(attempt.payload);
+    if (response.ok) {
+      data = responseData;
+      successfulPayload = attempt.payload;
+      break;
+    }
+
+    lastError = {
+      label: attempt.label,
+      status: response.status,
+      providerPayload: responseData,
+      requestPayload: attempt.payload,
+    };
+  }
+
+  if (!data) {
     throw createRisePayError(
-      data?.error || data?.message || data?.details || data?.raw || `Erro Rise Pay (${response.status})`,
+      lastError?.providerPayload?.error ||
+        lastError?.providerPayload?.message ||
+        lastError?.providerPayload?.details ||
+        lastError?.providerPayload?.raw ||
+        `Erro Rise Pay (${lastError?.status || 400})`,
       {
         code: "RISEPAY_CHECKOUT_FAILED",
-        status: response.status,
-        providerPayload: data,
-        requestPayload: payload,
+        status: lastError?.status || 400,
+        providerPayload: lastError?.providerPayload,
+        requestPayload: lastError?.requestPayload,
+        attemptLabel: lastError?.label,
       }
     );
   }
@@ -183,7 +252,7 @@ async function createCheckout({ userId, email, name, cpf, phone, kind, planId, q
     throw createRisePayError("Rise Pay nao retornou URL de checkout nem QR Code PIX.", {
       code: "RISEPAY_MISSING_URL",
       providerPayload: data,
-      requestPayload: payload,
+      requestPayload: successfulPayload,
     });
   }
 

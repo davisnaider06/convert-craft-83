@@ -37,6 +37,7 @@ const createCheckout = async (req, res) => {
       message: error?.message,
       code: error?.code,
       status: error?.status,
+      attemptLabel: error?.attemptLabel,
       providerPayload: error?.providerPayload,
       requestPayload: error?.requestPayload,
     });
@@ -44,7 +45,11 @@ const createCheckout = async (req, res) => {
     return res.status(error?.status || 400).json({
       error: error?.message || "Falha ao criar checkout.",
       code: error?.code || "CHECKOUT_FAILED",
-      details: process.env.NODE_ENV === "production" ? undefined : error?.providerPayload || error?.requestPayload,
+      details: {
+        attemptLabel: error?.attemptLabel,
+        providerPayload: error?.providerPayload,
+        requestPayload: error?.requestPayload,
+      },
     });
   }
 };
