@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { AnimatedBackground } from "@/components/boder/AnimatedBackground";
 import { ThemeToggle } from "@/components/boder/ThemeToggle";
 import { useUser } from "@clerk/clerk-react"; // FIX: Usando Clerk
+import { readApiResponse, useApiClient } from "@/lib/apiClient";
 
 import { premiumToast } from "@/components/ui/premium-toast";
 import {
@@ -45,6 +46,7 @@ export default function DomainSettings() {
   
   // FIX: Substituído useAuth() antigo pelo useUser() do Clerk
   const { user, isLoaded } = useUser();
+  const { apiFetch } = useApiClient();
 
   const [site, setSite] = useState<SiteData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,47 +56,46 @@ export default function DomainSettings() {
   const [domainStatus, setDomainStatus] = useState<DomainStatus>("none");
   const [showInstructions, setShowInstructions] = useState(false);
 
-  // Lógica de Plano:
-  // No Clerk, isso viria de user.publicMetadata.plan.
-  // Deixei true fixo para você testar a UI, mas a lógica real está comentada ao lado.
-  const isPaid = true; // isLoaded && user?.publicMetadata?.plan !== "free";
+  const [backendPlan, setBackendPlan] = useState<string>("free");
+  const isPaid = backendPlan !== "free";
 
   useEffect(() => {
     if (id) loadSite();
   }, [id]);
 
+  useEffect(() => {
+    if (!isLoaded || !user) return;
+    (async () => {
+      try {
+        const res = await apiFetch(
+          `/api/user/${user.id}?email=${user.primaryEmailAddress?.emailAddress || ""}`,
+        );
+        const parsed = await readApiResponse(res);
+        if (parsed.ok) setBackendPlan(parsed.data?.plan || "free");
+      } catch {
+        // noop
+      }
+    })();
+  }, [isLoaded, user, apiFetch]);
+
   const loadSite = async () => {
     if (!id) return;
-
-    // SIMULAÇÃO: Busca do LocalStorage em vez do Supabase
     try {
-      // Pequeno delay para simular rede
-      await new Promise(r => setTimeout(r, 600));
+      const res = await apiFetch(`/api/sites/${id}`);
+      const parsed = await readApiResponse(res);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao carregar site");
 
-      const storedSites = JSON.parse(localStorage.getItem("mock_sites") || "[]");
-      const foundSite = storedSites.find((s: any) => s.id === id);
+      const foundSite = parsed.data?.site;
+      setSite(foundSite);
 
-      if (foundSite) {
-        setSite(foundSite);
-        if (foundSite.custom_domain) {
-          setCustomDomain(foundSite.custom_domain);
-          setDomainStatus("active"); // Assume que se já tem salvo, está ativo no mock
-        }
-      } else {
-        // Fallback: Se não achar (acesso direto pela URL), cria um mock para não quebrar a tela
-        console.warn("Site não encontrado no storage, gerando mock visual.");
-        const mockSite: SiteData = {
-          id: id,
-          name: "Site Exemplo",
-          subdomain: "meu-site-legal",
-          custom_domain: null,
-          is_published: true
-        };
-        setSite(mockSite);
+      if (foundSite?.custom_domain) {
+        setCustomDomain(foundSite.custom_domain);
+        setDomainStatus("active");
+        setShowInstructions(true);
       }
     } catch (error) {
       console.error("Erro ao carregar site", error);
-      premiumToast.error("Erro ao carregar configurações");
+      premiumToast.error("Erro ao carregar configurações", "Tente novamente.");
       navigate("/dashboard");
     } finally {
       setLoading(false);
@@ -139,16 +140,23 @@ export default function DomainSettings() {
       .trim();
 
     if (!cleanDomain) {
-      // Remove custom domain
       setSaving(true);
-      
-      // Simula API call
-      await new Promise(r => setTimeout(r, 800));
-      updateLocalSite({ custom_domain: null });
+      try {
+        const res = await apiFetch(`/api/sites/${site.id}/domain`, {
+          method: "PATCH",
+          body: JSON.stringify({ customDomain: "" }),
+        });
+        const parsed = await readApiResponse(res);
+        if (!parsed.ok) throw new Error(parsed.error || "Falha ao remover domínio");
 
-      setSaving(false);
-      setDomainStatus("none");
-      premiumToast.success("Domínio removido");
+        setSite(parsed.data.site);
+        setCustomDomain("");
+        setDomainStatus("none");
+        setShowInstructions(false);
+        premiumToast.success("Domínio removido");
+      } finally {
+        setSaving(false);
+      }
       return;
     }
 
@@ -159,14 +167,23 @@ export default function DomainSettings() {
 
     setSaving(true);
     setDomainStatus("pending");
+    try {
+      const res = await apiFetch(`/api/sites/${site.id}/domain`, {
+        method: "PATCH",
+        body: JSON.stringify({ customDomain: cleanDomain }),
+      });
+      const parsed = await readApiResponse(res);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao salvar domínio");
 
-    // Simula API call
-    await new Promise(r => setTimeout(r, 1000));
-    updateLocalSite({ custom_domain: cleanDomain });
-
-    setSaving(false);
-    setShowInstructions(true);
-    premiumToast.success("Domínio salvo!", "Configure o DNS para ativar.");
+      setSite(parsed.data.site);
+      setCustomDomain(cleanDomain);
+      setShowInstructions(true);
+      premiumToast.success("Domínio salvo!", "Configure o DNS para ativar.");
+    } catch (err: any) {
+      premiumToast.error("Erro ao salvar domínio", err?.message || "Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleVerifyDomain = async () => {
@@ -185,18 +202,32 @@ export default function DomainSettings() {
 
   const handleRemoveDomain = async () => {
     if (!site) return;
-
-    setSaving(true);
-    
-    // Simula API call
-    await new Promise(r => setTimeout(r, 800));
-    updateLocalSite({ custom_domain: null });
-
-    setSaving(false);
     setCustomDomain("");
-    setDomainStatus("none");
-    setShowInstructions(false);
-    premiumToast.success("Domínio removido");
+    const oldCustomDomain = site.custom_domain;
+    // Reaproveita a mesma lógica do "salvar" para remover.
+    if (!oldCustomDomain) {
+      setDomainStatus("none");
+      setShowInstructions(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await apiFetch(`/api/sites/${site.id}/domain`, {
+        method: "PATCH",
+        body: JSON.stringify({ customDomain: "" }),
+      });
+      const parsed = await readApiResponse(res);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao remover domínio");
+
+      setSite(parsed.data.site);
+      setDomainStatus("none");
+      setShowInstructions(false);
+      premiumToast.success("Domínio removido");
+    } catch (err: any) {
+      premiumToast.error("Erro ao remover domínio", err?.message || "Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Loading do Auth ou do Site

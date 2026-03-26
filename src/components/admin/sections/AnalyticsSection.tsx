@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { readApiResponse, useApiClient } from "@/lib/apiClient";
 
 interface AnalyticsData {
   planDistribution: Array<{ name: string; value: number; color: string }>;
@@ -35,6 +36,7 @@ interface AnalyticsData {
 }
 
 export function AnalyticsSection() {
+  const { apiFetch } = useApiClient();
   const [data, setData] = useState<AnalyticsData>({
     planDistribution: [],
     userGrowth: [],
@@ -52,61 +54,12 @@ export function AnalyticsSection() {
   async function fetchAnalytics() {
     setIsLoading(true);
     
-    // SIMULATION: Fetching data (Mock)
     try {
-      await new Promise(r => setTimeout(r, 1200)); // Fake loading delay
+      const response = await apiFetch("/api/admin/analytics");
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao carregar analytics");
 
-      // Mock Daily Revenue (Last 30 days)
-      const mockDailyRevenue = Array.from({ length: 30 }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - (29 - i));
-        return {
-          date: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-          revenue: Math.floor(Math.random() * 500) + 100 + (i * 10), // Trending up
-        };
-      });
-
-      // Mock Plan Distribution
-      const mockPlanDistribution = [
-        { name: "Free", value: 450, color: "#6b7280" },
-        { name: "Pro", value: 120, color: "#3ECFB2" },
-        { name: "Anual", value: 45, color: "#f59e0b" },
-      ];
-
-      // Mock User Growth
-      const mockUserGrowth = [
-        { month: 'Ago', users: 120 },
-        { month: 'Set', users: 180 },
-        { month: 'Out', users: 250 },
-        { month: 'Nov', users: 390 },
-        { month: 'Dez', users: 510 },
-        { month: 'Jan', users: 615 },
-      ];
-
-      // Mock Revenue by Period (Monthly)
-      const mockRevenueByPeriod = [
-        { period: 'Ago', revenue: 1200, count: 20 },
-        { period: 'Set', revenue: 1800, count: 35 },
-        { period: 'Out', revenue: 2500, count: 45 },
-        { period: 'Nov', revenue: 3900, count: 70 },
-        { period: 'Dez', revenue: 5100, count: 95 },
-        { period: 'Jan', revenue: 6800, count: 120 },
-      ];
-
-      // Mock Revenue by Type
-      const mockRevenueByType = [
-        { type: "Assinaturas", revenue: 15400, color: "#3ECFB2" },
-        { type: "Créditos", revenue: 4200, color: "#3b82f6" },
-        { type: "Reembolsos", revenue: 350, color: "#ef4444" },
-      ];
-
-      setData({
-        planDistribution: mockPlanDistribution,
-        userGrowth: mockUserGrowth,
-        revenueByPeriod: mockRevenueByPeriod,
-        revenueByType: mockRevenueByType,
-        dailyRevenue: mockDailyRevenue,
-      });
+      setData(parsed.data.analytics as AnalyticsData);
 
     } catch (error) {
       console.error("Error fetching analytics:", error);

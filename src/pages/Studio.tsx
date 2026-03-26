@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useUser, useClerk } from "@clerk/clerk-react";
@@ -17,13 +17,13 @@ import {
   Sparkles,
   Bot,
   User,
+  History,
   Wand2,
   Code2,
   LayoutTemplate,
 } from "lucide-react";
 import { readApiResponse, useApiClient } from "@/lib/apiClient";
-
-const isPaid = false;
+import { GenerationHistoryModal } from "@/components/boder/GenerationHistoryModal";
 
 interface Message {
   id: string;
@@ -41,6 +41,15 @@ interface GenerationContext {
   userPrompt?: string;
   customizations?: string;
   mustHave?: string[];
+}
+
+interface GenerationLogItem {
+  id: number;
+  userId: string;
+  prompt: string;
+  cost: number;
+  modelUsed: string;
+  createdAt: string;
 }
 
 const KNOWN_SECTION_KEYS: Record<string, string> = {
@@ -115,12 +124,18 @@ export default function Studio() {
   const [siteData, setSiteData] = useState<any | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("desktop");
   const [credits, setCredits] = useState<number | string>("-");
+  const [backendPlan, setBackendPlan] = useState<string>("free");
+  const isPaid = backendPlan !== "free";
   
   // --- ESTADOS PARA PUBLICAÇÃO ---
   const [currentSiteId, setCurrentSiteId] = useState<string | null>(null);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [subdomainInput, setSubdomainInput] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
+
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyLogs, setHistoryLogs] = useState<GenerationLogItem[]>([]);
 
   const extractMustHave = (userPrompt: string, customizations?: string) => {
     const raw = `${userPrompt}\n${customizations || ""}`
@@ -141,6 +156,7 @@ export default function Studio() {
           if (res.ok) {
             const data = await res.json();
             setCredits(data.credits);
+            setBackendPlan(data.plan || "free");
           }
         } catch (error) {
           console.warn("Erro ao buscar créditos:", error);
@@ -163,6 +179,8 @@ useEffect(() => {
   const navState = location.state as { 
     loadSiteId?: string; 
     initialPrompt?: string; 
+    initialMessage?: string;
+    showHistory?: boolean;
     templateId?: string;
     templateName?: string;
     templateCategory?: string;
@@ -183,7 +201,12 @@ useEffect(() => {
           const foundSite = parsed.data.site;
           setSiteData(foundSite.content);
           setCurrentSiteId(foundSite.id);
-          setMessages([{ id: "loaded", role: "ai", content: `Site "${foundSite.name}" carregado. O que vamos ajustar?` }]);
+          const msg =
+            navState?.initialMessage ||
+            navState?.initialPrompt ||
+            `Site "${foundSite.name}" carregado. O que vamos ajustar?`;
+          setMessages([{ id: "loaded", role: "ai", content: msg }]);
+          if (navState?.showHistory) setHistoryOpen(true);
         } catch (error) {
           premiumToast.error("Erro", "Não foi possível carregar o site selecionado.");
           navigate("/dashboard");
@@ -223,6 +246,34 @@ useEffect(() => {
       });
   }
 }, [isSignedIn, location.state]);
+
+  // Fetch generation history on-demand (when the modal opens)
+  useEffect(() => {
+    if (!historyOpen) return;
+    let cancelled = false;
+
+    async function loadHistory() {
+      try {
+        setHistoryLoading(true);
+        const response = await apiFetch("/api/generations");
+        const parsed = await readApiResponse(response);
+        if (!parsed.ok) throw new Error(parsed.error || "Falha ao carregar histórico");
+        if (!cancelled) setHistoryLogs(parsed.data?.logs || []);
+      } catch (err: any) {
+        if (!cancelled) {
+          premiumToast.error("Erro ao carregar histórico", err?.message || "Tente novamente.");
+        }
+      } finally {
+        if (!cancelled) setHistoryLoading(false);
+      }
+    }
+
+    void loadHistory();
+    return () => {
+      cancelled = true;
+    };
+  }, [historyOpen, apiFetch]);
+
  const handleSendMessage = async (
   forcedText?: string,
   options?: { templateId?: string; generationContext?: GenerationContext }
@@ -285,6 +336,9 @@ useEffect(() => {
         content: normalizedSite,
         name: heroHeadline,
         description: heroSubheadline,
+        nicho: generationContextRef.current?.templateCategory,
+        objetivo: generationContextRef.current?.templateCategory,
+        estilo: generationContextRef.current?.templateStyle,
       }),
     });
     const parsedDraft = await readApiResponse(draftResponse);
@@ -322,7 +376,10 @@ useEffect(() => {
           userId: user?.id,
           content: siteData, 
           name: siteData.sections?.find((s: any) => s.type === "hero")?.headline || "Novo Site",
-          description: siteData.sections?.find((s: any) => s.type === "hero")?.subheadline || ""
+          description: siteData.sections?.find((s: any) => s.type === "hero")?.subheadline || "",
+          nicho: siteData?.metadata?.nicho ?? generationContextRef.current?.templateCategory,
+          objetivo: siteData?.metadata?.objetivo ?? generationContextRef.current?.templateCategory,
+          estilo: siteData?.metadata?.estilo ?? generationContextRef.current?.templateStyle
         })
       });
 
@@ -528,6 +585,16 @@ useEffect(() => {
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setHistoryOpen(true)}
+              className="gap-2 bg-card/80 backdrop-blur hidden sm:inline-flex"
+            >
+              <History className="h-4 w-4 text-primary" />
+              Histórico
+            </Button>
+
             {/* BOTÃO DE PUBLICAR (ACIONA O MODAL) */}
             {siteData && (
               <Button
@@ -691,6 +758,13 @@ useEffect(() => {
           </div>
         )}
       </AnimatePresence>
+
+      <GenerationHistoryModal
+        isOpen={historyOpen}
+        onOpenChange={setHistoryOpen}
+        logs={historyLogs}
+        loading={historyLoading}
+      />
     </div>
   );
 }

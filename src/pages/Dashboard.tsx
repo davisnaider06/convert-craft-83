@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -37,12 +37,9 @@ interface GeneratedSite {
   id: string;
   name: string;
   description: string | null;
-  nicho: string | null;
-  objetivo: string | null;
-  estilo: string | null;
+  content: any | null;
   custom_domain: string | null;
   subdomain: string | null;
-  has_watermark: boolean;
   is_published: boolean;
   created_at: string;
   published_at: string | null;
@@ -434,14 +431,14 @@ export default function Dashboard() {
                         )}
 
                         <div className="flex flex-wrap gap-2 mb-4">
-                          {site.nicho && (
+                          {site.content?.metadata?.nicho && (
                             <span className="rounded-full bg-primary/10 px-2 py-1 text-xs text-primary">
-                              {site.nicho}
+                              {site.content?.metadata?.nicho}
                             </span>
                           )}
-                          {site.estilo && (
+                          {site.content?.metadata?.estilo && (
                             <span className="rounded-full bg-secondary px-2 py-1 text-xs">
-                              {site.estilo}
+                              {site.content?.metadata?.estilo}
                             </span>
                           )}
                         </div>

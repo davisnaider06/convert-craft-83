@@ -28,6 +28,7 @@ import { Search, MoreVertical, Shield, ShieldOff, Ban, CheckCircle } from "lucid
 import { toast } from "sonner";
 // If ADMIN_EMAILS doesn't exist in your current setup, you can remove this import or create a dummy file
 import { ADMIN_EMAILS } from "@/hooks/useAdminCheck";
+import { readApiResponse, useApiClient } from "@/lib/apiClient";
 
 interface UserProfile {
   id: string;
@@ -40,6 +41,7 @@ interface UserProfile {
 }
 
 export function UsersSection() {
+  const { apiFetch } = useApiClient();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,59 +59,21 @@ export function UsersSection() {
   async function fetchUsers() {
     setIsLoading(true);
     try {
-      // SIMULATION: Network delay
-      await new Promise(r => setTimeout(r, 800));
+      const response = await apiFetch("/api/admin/users");
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao carregar usuários");
 
-      // Mock Users Data
-      const mockUsers: UserProfile[] = [
-        {
-          id: "1",
-          email: "admin@boder.ia",
-          full_name: "Admin Boder",
-          credits: 9999,
-          plan: "pro",
-          created_at: "2023-01-01T10:00:00Z",
-          isAdmin: true
-        },
-        {
-          id: "2",
-          email: "joao.silva@gmail.com",
-          full_name: "João Silva",
-          credits: 10,
-          plan: "free",
-          created_at: "2023-05-15T14:30:00Z",
-          isAdmin: false
-        },
-        {
-          id: "3",
-          email: "maria.souza@empresa.com",
-          full_name: "Maria Souza",
-          credits: 85,
-          plan: "pro",
-          created_at: "2023-06-20T09:15:00Z",
-          isAdmin: false
-        },
-        {
-          id: "4",
-          email: "pedro.tech@startup.io",
-          full_name: "Pedro Tech",
-          credits: 240,
-          plan: "annual",
-          created_at: "2023-02-10T16:45:00Z",
-          isAdmin: false
-        },
-        {
-          id: "5",
-          email: "lucas.dev@code.com",
-          full_name: "Lucas Dev",
-          credits: 5,
-          plan: "free",
-          created_at: "2023-08-05T11:20:00Z",
-          isAdmin: false
-        }
-      ];
+      const mapped: UserProfile[] = (parsed.data.users || []).map((u: any) => ({
+        id: u.id,
+        email: u.email,
+        full_name: null,
+        credits: u.credits,
+        plan: u.planType,
+        created_at: u.createdAt,
+        isAdmin: u.email ? ADMIN_EMAILS.includes(u.email) : false,
+      }));
 
-      setUsers(mockUsers);
+      setUsers(mapped);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast.error("Erro ao carregar usuários");
@@ -138,12 +102,25 @@ export function UsersSection() {
 
   async function updateUserPlan(userId: string, plan: string) {
     try {
-      // SIMULATION: Update Plan
-      await new Promise(r => setTimeout(r, 500));
+      const response = await apiFetch(`/api/admin/users/${userId}/plan`, {
+        method: "POST",
+        body: JSON.stringify({ planId: plan }),
+      });
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao atualizar plano");
 
-      setUsers(prev => prev.map(u => 
-        u.id === userId ? { ...u, plan: plan } : u
-      ));
+      const updated = parsed.data.user;
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === userId
+            ? {
+                ...u,
+                plan: updated.planType,
+                credits: updated.credits,
+              }
+            : u,
+        ),
+      );
 
       toast.success(`Plano atualizado para ${plan.toUpperCase()}`);
     } catch (error) {
@@ -154,18 +131,8 @@ export function UsersSection() {
 
   async function toggleAdminRole(userId: string, isCurrentlyAdmin: boolean) {
     try {
-      // SIMULATION: Toggle Admin
-      await new Promise(r => setTimeout(r, 500));
-
-      setUsers(prev => prev.map(u => 
-        u.id === userId ? { ...u, isAdmin: !isCurrentlyAdmin } : u
-      ));
-
-      if (isCurrentlyAdmin) {
-        toast.success("Role de admin removida");
-      } else {
-        toast.success("Role de admin adicionada");
-      }
+      // A role admin é definida no backend via ADMIN_EMAILS (env).
+      toast.info("Role admin é definida por configuração do backend (ADMIN_EMAILS).");
     } catch (error) {
       console.error("Error toggling admin:", error);
       toast.error("Erro ao modificar role");
@@ -263,11 +230,7 @@ export function UsersSection() {
                 </TableCell>
                 <TableCell>{getPlanBadge(user.plan)}</TableCell>
                 <TableCell>
-                  {user.email && ADMIN_EMAILS && ADMIN_EMAILS.includes(user.email) ? (
-                    <span className="font-bold text-primary">∞</span>
-                  ) : (
-                    user.credits
-                  )}
+                  {user.credits}
                 </TableCell>
                 <TableCell>
                   {user.isAdmin ? (

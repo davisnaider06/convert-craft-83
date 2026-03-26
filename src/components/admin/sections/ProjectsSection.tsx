@@ -24,6 +24,7 @@ import {
 import { Search, Trash2, Eye, EyeOff, ExternalLink, FolderKanban } from "lucide-react";
 import { toast } from "sonner";
 import { AdminMetricCard } from "../AdminMetricCard";
+import { readApiResponse, useApiClient } from "@/lib/apiClient";
 
 interface Project {
   id: string;
@@ -41,6 +42,7 @@ interface Project {
 }
 
 export function ProjectsSection() {
+  const { apiFetch } = useApiClient();
   const [projects, setProjects] = useState<Project[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,84 +60,26 @@ export function ProjectsSection() {
   async function fetchProjects() {
     setIsLoading(true);
     try {
-      // SIMULAÇÃO: Delay de rede
-      await new Promise(r => setTimeout(r, 800));
+      const response = await apiFetch("/api/admin/sites");
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao carregar projetos");
 
-      // Dados Mockados de Projetos
-      const mockProjects: Project[] = [
-        {
-          id: "1",
-          name: "Barbearia do Zé",
-          description: "Landing page para barbearia moderna",
-          nicho: "Beleza",
-          objetivo: "Agendamento",
-          estilo: "Vintage",
-          subdomain: "barbearia-ze",
-          is_published: true,
-          has_watermark: false,
-          created_at: new Date().toISOString(),
-          user_id: "user-1",
-          user_email: "ze@barbearia.com"
-        },
-        {
-          id: "2",
-          name: "Advocacia Silva",
-          description: "Site institucional para escritório",
-          nicho: "Jurídico",
-          objetivo: "Institucional",
-          estilo: "Sóbrio",
-          subdomain: "silva-adv",
-          is_published: true,
-          has_watermark: true,
-          created_at: new Date(Date.now() - 86400000).toISOString(), // 1 dia atrás
-          user_id: "user-2",
-          user_email: "contato@silvaadv.com.br"
-        },
-        {
-          id: "3",
-          name: "Curso de Inglês Rápido",
-          description: "Página de vendas de curso online",
-          nicho: "Educação",
-          objetivo: "Vendas",
-          estilo: "Moderno",
-          subdomain: null,
-          is_published: false,
-          has_watermark: true,
-          created_at: new Date(Date.now() - 172800000).toISOString(), // 2 dias atrás
-          user_id: "user-3",
-          user_email: "teacher@english.com"
-        },
-        {
-          id: "4",
-          name: "Tech Startup Landing",
-          description: "SaaS produto inovador",
-          nicho: "Tecnologia",
-          objetivo: "Leads",
-          estilo: "Futurista",
-          subdomain: "tech-start",
-          is_published: true,
-          has_watermark: false,
-          created_at: new Date(Date.now() - 259200000).toISOString(), // 3 dias atrás
-          user_id: "user-4",
-          user_email: "founder@startup.io"
-        },
-        {
-          id: "5",
-          name: "Portfólio Fotografia",
-          description: "Galeria de fotos",
-          nicho: "Fotografia",
-          objetivo: "Portfólio",
-          estilo: "Minimalista",
-          subdomain: null,
-          is_published: false,
-          has_watermark: true,
-          created_at: new Date(Date.now() - 604800000).toISOString(), // 7 dias atrás
-          user_id: "user-5",
-          user_email: "foto@studio.com"
-        }
-      ];
+      const mapped: Project[] = (parsed.data.sites || []).map((s: any) => ({
+        id: s.id,
+        name: s.name || "Meu Site",
+        description: s.description,
+        nicho: s.content?.metadata?.nicho ?? null,
+        objetivo: s.content?.metadata?.objetivo ?? null,
+        estilo: s.content?.metadata?.estilo ?? null,
+        subdomain: s.subdomain ?? null,
+        is_published: s.is_published,
+        has_watermark: false,
+        created_at: s.created_at,
+        user_id: s.userId,
+        user_email: s.user?.email ?? null,
+      }));
 
-      setProjects(mockProjects);
+      setProjects(mapped);
     } catch (error) {
       console.error("Error fetching projects:", error);
       toast.error("Erro ao carregar projetos");
@@ -161,10 +105,11 @@ export function ProjectsSection() {
 
   async function deleteProject(id: string) {
     try {
-      // SIMULAÇÃO: Deleção
-      await new Promise(r => setTimeout(r, 500));
-      
-      setProjects(prev => prev.filter(p => p.id !== id));
+      const response = await apiFetch(`/api/admin/sites/${id}`, { method: "DELETE" });
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao excluir projeto");
+
+      setProjects((prev) => prev.filter((p) => p.id !== id));
       toast.success("Projeto excluído");
       setDeleteId(null);
     } catch (error) {
@@ -175,24 +120,28 @@ export function ProjectsSection() {
 
   async function togglePublish(id: string, currentStatus: boolean) {
     try {
-      // SIMULAÇÃO: Update
-      await new Promise(r => setTimeout(r, 500));
+      const project = projects.find((p) => p.id === id);
 
-      setProjects(prev => prev.map(p => {
-        if (p.id === id) {
-            return {
-                ...p,
-                is_published: !currentStatus,
-                // Se publicou, gera um subdomínio mock se não tiver
-                subdomain: !currentStatus && !p.subdomain 
-                    ? p.name.toLowerCase().replace(/\s+/g, '-') 
-                    : p.subdomain
-            };
-        }
-        return p;
-      }));
+      if (currentStatus) {
+        const response = await apiFetch(`/api/admin/sites/${id}/unpublish`, { method: "POST" });
+        const parsed = await readApiResponse(response);
+        if (!parsed.ok) throw new Error(parsed.error || "Falha ao despublicar");
+      } else {
+        const subdomain =
+          project?.subdomain ||
+          project?.name?.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "") ||
+          "";
+
+        const response = await apiFetch(`/api/admin/sites/${id}/publish`, {
+          method: "POST",
+          body: JSON.stringify({ subdomain }),
+        });
+        const parsed = await readApiResponse(response);
+        if (!parsed.ok) throw new Error(parsed.error || "Falha ao publicar");
+      }
 
       toast.success(currentStatus ? "Projeto despublicado" : "Projeto publicado");
+      await fetchProjects();
     } catch (error) {
       console.error("Error toggling publish:", error);
       toast.error("Erro ao alterar publicação");

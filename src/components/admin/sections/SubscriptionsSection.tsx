@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Search, MoreVertical, RefreshCw, XCircle, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
+import { readApiResponse, useApiClient } from "@/lib/apiClient";
 
 interface Subscription {
   id: string;
@@ -38,6 +39,7 @@ interface Subscription {
 }
 
 export function SubscriptionsSection() {
+  const { apiFetch } = useApiClient();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [filteredSubs, setFilteredSubs] = useState<Subscription[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -55,59 +57,21 @@ export function SubscriptionsSection() {
   async function fetchSubscriptions() {
     setIsLoading(true);
     try {
-      // SIMULATION: Network delay
-      await new Promise(r => setTimeout(r, 800));
+      const response = await apiFetch("/api/admin/users");
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao carregar assinaturas");
 
-      // Mock Subscription Data
-      const mockSubscriptions: Subscription[] = [
-        {
-          id: "1",
-          email: "ana.silva@empresa.com",
-          full_name: "Ana Silva",
-          plan: "pro",
-          credits: 85,
-          created_at: "2023-05-10T10:00:00Z",
-          updated_at: "2023-06-10T10:00:00Z"
-        },
-        {
-          id: "2",
-          email: "carlos.dev@tech.io",
-          full_name: "Carlos Dev",
-          plan: "annual",
-          credits: 240,
-          created_at: "2023-01-15T09:00:00Z",
-          updated_at: "2023-01-15T09:00:00Z"
-        },
-        {
-          id: "3",
-          email: "maria.loja@shop.com",
-          full_name: "Maria Loja",
-          plan: "free",
-          credits: 5,
-          created_at: "2023-07-20T14:30:00Z",
-          updated_at: "2023-08-05T11:00:00Z"
-        },
-        {
-          id: "4",
-          email: "joao.marketing@agency.com",
-          full_name: "João Marketing",
-          plan: "pro",
-          credits: 45,
-          created_at: "2023-03-12T16:45:00Z",
-          updated_at: "2023-04-12T16:45:00Z"
-        },
-        {
-          id: "5",
-          email: "admin@boder.ia",
-          full_name: "Admin Boder",
-          plan: "admin", // Special plan for admin
-          credits: 9999,
-          created_at: "2023-01-01T00:00:00Z",
-          updated_at: "2023-01-01T00:00:00Z"
-        }
-      ];
+      const mapped: Subscription[] = (parsed.data.users || []).map((u: any) => ({
+        id: u.id,
+        email: u.email,
+        full_name: null,
+        plan: u.planType,
+        credits: u.credits,
+        created_at: u.createdAt,
+        updated_at: u.createdAt,
+      }));
 
-      setSubscriptions(mockSubscriptions);
+      setSubscriptions(mapped);
     } catch (error) {
       console.error("Error fetching subscriptions:", error);
       toast.error("Erro ao carregar assinaturas");
@@ -138,14 +102,22 @@ export function SubscriptionsSection() {
 
   async function cancelSubscription(userId: string) {
     try {
-      // SIMULATION: Update local state
-      await new Promise(r => setTimeout(r, 500));
+      const response = await apiFetch(`/api/admin/users/${userId}/plan`, {
+        method: "POST",
+        body: JSON.stringify({ planId: "free" }),
+      });
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao cancelar assinatura");
 
-      const updatedSubs = subscriptions.map(sub => 
-        sub.id === userId ? { ...sub, plan: "free", credits: 0, updated_at: new Date().toISOString() } : sub
+      const updated = parsed.data.user;
+      setSubscriptions((prev) =>
+        prev.map((sub) =>
+          sub.id === userId
+            ? { ...sub, plan: updated.planType, credits: updated.credits, updated_at: new Date().toISOString() }
+            : sub,
+        ),
       );
-      setSubscriptions(updatedSubs);
-      toast.success("Assinatura cancelada (Simulação)");
+      toast.success("Assinatura cancelada");
     } catch (error) {
       console.error("Error canceling subscription:", error);
       toast.error("Erro ao cancelar assinatura");
@@ -154,15 +126,22 @@ export function SubscriptionsSection() {
 
   async function reactivateSubscription(userId: string, plan: string) {
     try {
-      // SIMULATION: Update local state
-      await new Promise(r => setTimeout(r, 500));
+      const response = await apiFetch(`/api/admin/users/${userId}/plan`, {
+        method: "POST",
+        body: JSON.stringify({ planId: plan }),
+      });
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao reativar assinatura");
 
-      const credits = plan === "pro" || plan === "annual" ? 100 : 10;
-      const updatedSubs = subscriptions.map(sub => 
-        sub.id === userId ? { ...sub, plan, credits, updated_at: new Date().toISOString() } : sub
+      const updated = parsed.data.user;
+      setSubscriptions((prev) =>
+        prev.map((sub) =>
+          sub.id === userId
+            ? { ...sub, plan: updated.planType, credits: updated.credits, updated_at: new Date().toISOString() }
+            : sub,
+        ),
       );
-      setSubscriptions(updatedSubs);
-      toast.success(`Assinatura reativada como ${plan.toUpperCase()} (Simulação)`);
+      toast.success(`Assinatura reativada como ${plan.toUpperCase()}`);
     } catch (error) {
       console.error("Error reactivating subscription:", error);
       toast.error("Erro ao reativar assinatura");

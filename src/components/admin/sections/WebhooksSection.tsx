@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/collapsible";
 import { RefreshCw, ChevronDown, CheckCircle, XCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { readApiResponse, useApiClient } from "@/lib/apiClient";
 
 // Simplified type for Mock
 interface WebhookLog {
@@ -30,6 +31,7 @@ interface WebhookLog {
 }
 
 export function WebhooksSection() {
+  const { apiFetch } = useApiClient();
   const [logs, setLogs] = useState<WebhookLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -41,59 +43,10 @@ export function WebhooksSection() {
   async function fetchLogs() {
     setIsLoading(true);
     try {
-      // SIMULATION: Network delay
-      await new Promise(r => setTimeout(r, 800));
-
-      // Mock Webhook Logs
-      const mockLogs: WebhookLog[] = [
-        {
-          id: "log_1",
-          event_type: "payment.confirmed",
-          payload: { transaction_id: "txn_123", amount: 67.00, user: "ana@email.com" },
-          status: "success",
-          error_message: null,
-          created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 min ago
-          resolved_at: null
-        },
-        {
-          id: "log_2",
-          event_type: "subscription.created",
-          payload: { plan: "pro", cycle: "monthly" },
-          status: "success",
-          error_message: null,
-          created_at: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 min ago
-          resolved_at: null
-        },
-        {
-          id: "log_3",
-          event_type: "credits.added",
-          payload: { credits: 100, user_id: "user_456" },
-          status: "error",
-          error_message: "Database timeout",
-          created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-          resolved_at: null
-        },
-        {
-          id: "log_4",
-          event_type: "site.published",
-          payload: { site_id: "site_789", subdomain: "barbearia-top" },
-          status: "pending",
-          error_message: null,
-          created_at: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(), // 5 hours ago
-          resolved_at: null
-        },
-        {
-          id: "log_5",
-          event_type: "invoice.failed",
-          payload: { reason: "insufficient_funds", attempt: 3 },
-          status: "resolved",
-          error_message: "Payment declined by bank",
-          created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-          resolved_at: new Date(Date.now() - 1000 * 60 * 60 * 23).toISOString()
-        }
-      ];
-
-      setLogs(mockLogs);
+      const response = await apiFetch("/api/admin/webhooks/logs");
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao carregar logs");
+      setLogs(parsed.data.logs || []);
     } catch (error) {
       console.error("Error fetching webhook logs:", error);
       toast.error("Erro ao carregar logs");

@@ -40,6 +40,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
+import { readApiResponse, useApiClient } from "@/lib/apiClient";
 // If this hook doesn't exist in your mock setup, you can remove it or mock the list
 import { ADMIN_EMAILS } from "@/hooks/useAdminCheck"; 
 
@@ -59,6 +60,7 @@ interface UserProfile {
 }
 
 export function RolesSection() {
+  const { apiFetch } = useApiClient();
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -77,30 +79,23 @@ export function RolesSection() {
   async function fetchRoles() {
     setIsLoading(true);
     try {
-      // SIMULATION: Network delay
-      await new Promise(r => setTimeout(r, 800));
+      const response = await apiFetch("/api/admin/users");
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao carregar roles");
 
-      // Mock Roles Data
-      const mockRoles: UserRole[] = [
-        {
-          id: "role-1",
-          user_id: "user-1",
+      const adminEmailsLower = (ADMIN_EMAILS || []).map((e) => String(e).toLowerCase());
+      const mapped: UserRole[] = (parsed.data.users || [])
+        .filter((u: any) => u.email && adminEmailsLower.includes(String(u.email).toLowerCase()))
+        .map((u: any) => ({
+          id: `role-${u.id}`,
+          user_id: u.id,
           role: "admin",
-          created_at: "2023-01-15T10:00:00Z",
-          user_email: "admin@boder.ia",
-          user_name: "Super Admin"
-        },
-        {
-          id: "role-2",
-          user_id: "user-5",
-          role: "admin",
-          created_at: "2023-06-20T14:30:00Z",
-          user_email: "suporte@boder.ia",
-          user_name: "Suporte Técnico"
-        }
-      ];
+          created_at: u.createdAt,
+          user_email: u.email,
+          user_name: u.email,
+        }));
 
-      setRoles(mockRoles);
+      setRoles(mapped);
     } catch (error) {
       console.error("Error fetching roles:", error);
       toast.error("Erro ao carregar roles");
@@ -111,21 +106,28 @@ export function RolesSection() {
 
   async function fetchAllUsers() {
     try {
-      // Mock Users Data for selection
-      const mockUsers: UserProfile[] = [
-        { id: "user-1", email: "admin@boder.ia", full_name: "Super Admin" },
-        { id: "user-2", email: "joao@cliente.com", full_name: "João Cliente" },
-        { id: "user-3", email: "maria@loja.com", full_name: "Maria Loja" },
-        { id: "user-4", email: "pedro@startup.io", full_name: "Pedro CEO" },
-        { id: "user-5", email: "suporte@boder.ia", full_name: "Suporte Técnico" },
-      ];
-      setAllUsers(mockUsers);
+      const response = await apiFetch("/api/admin/users");
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao carregar usuários");
+
+      const mapped: UserProfile[] = (parsed.data.users || []).map((u: any) => ({
+        id: u.id,
+        email: u.email,
+        full_name: null,
+      }));
+
+      setAllUsers(mapped);
     } catch (error) {
       console.error("Error fetching users:", error);
     }
   }
 
   async function addAdminRole() {
+    toast.info("Admin role é fixa por configuração do backend (ADMIN_EMAILS).");
+    setIsAddDialogOpen(false);
+    setNewAdminEmail("");
+    return;
+
     if (!newAdminEmail.trim()) {
       toast.error("Digite um email válido");
       return;
@@ -180,6 +182,11 @@ export function RolesSection() {
   }
 
   async function removeRole() {
+    toast.info("Remoção de role de admin via painel não está disponível no backend.");
+    setIsDeleteDialogOpen(false);
+    setSelectedRole(null);
+    return;
+
     if (!selectedRole) return;
 
     setIsSubmitting(true);

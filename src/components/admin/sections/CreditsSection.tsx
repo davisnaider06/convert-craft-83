@@ -24,6 +24,7 @@ import { Search, Plus, RotateCcw, Coins } from "lucide-react";
 import { toast } from "sonner";
 // Se o arquivo ADMIN_EMAILS não existir, pode remover o import e usar a lista fixa abaixo
 import { ADMIN_EMAILS } from "@/hooks/useAdminCheck"; 
+import { readApiResponse, useApiClient } from "@/lib/apiClient";
 
 interface UserCredits {
   id: string;
@@ -34,6 +35,7 @@ interface UserCredits {
 }
 
 export function CreditsSection() {
+  const { apiFetch } = useApiClient();
   const [users, setUsers] = useState<UserCredits[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserCredits[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,20 +55,19 @@ export function CreditsSection() {
   async function fetchUsers() {
     setIsLoading(true);
     try {
-      // SIMULAÇÃO: Delay de rede
-      await new Promise(r => setTimeout(r, 800));
+      const response = await apiFetch("/api/admin/users");
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao carregar usuários");
 
-      // Dados Mockados para o Painel Admin
-      const mockUsers: UserCredits[] = [
-        { id: "1", email: "admin@boder.ia", full_name: "Admin Boder", credits: 99999, plan: "admin" },
-        { id: "2", email: "joao.silva@email.com", full_name: "João Silva", credits: 12, plan: "free" },
-        { id: "3", email: "maria.dev@agencia.com", full_name: "Maria Souza", credits: 85, plan: "pro" },
-        { id: "4", email: "contato@lojalegal.com.br", full_name: "Loja Legal", credits: 0, plan: "free" },
-        { id: "5", email: "pedro.startup@tech.io", full_name: "Pedro Tech", credits: 240, plan: "annual" },
-        { id: "6", email: "ana.marketing@social.com", full_name: "Ana Marketing", credits: 45, plan: "pro" },
-      ];
+      const mapped: UserCredits[] = (parsed.data.users || []).map((u: any) => ({
+        id: u.id,
+        email: u.email,
+        full_name: null,
+        credits: u.credits,
+        plan: u.planType,
+      }));
 
-      setUsers(mockUsers);
+      setUsers(mapped);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast.error("Erro ao carregar usuários");
@@ -99,16 +100,15 @@ export function CreditsSection() {
     }
 
     try {
-      // SIMULAÇÃO: Atualização no banco
-      await new Promise(r => setTimeout(r, 600));
+      const response = await apiFetch(`/api/admin/users/${selectedUser.id}/credits`, {
+        method: "POST",
+        body: JSON.stringify({ amount }),
+      });
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao adicionar créditos");
 
-      const updatedUsers = users.map(user => 
-        user.id === selectedUser.id 
-          ? { ...user, credits: user.credits + amount } 
-          : user
-      );
-
-      setUsers(updatedUsers);
+      const updated = parsed.data.user;
+      setUsers((prev) => prev.map((user) => (user.id === selectedUser.id ? { ...user, credits: updated.credits } : user)));
       toast.success(`${amount} créditos adicionados para ${selectedUser.email}`);
       setIsDialogOpen(false);
       setCreditsToAdd("");
@@ -120,19 +120,22 @@ export function CreditsSection() {
   }
 
   async function resetCredits(userId: string, plan: string) {
-    const defaultCredits = plan === "free" ? 10 : 100;
-
     try {
-      // SIMULAÇÃO: Reset no banco
-      await new Promise(r => setTimeout(r, 600));
+      const response = await apiFetch(`/api/admin/users/${userId}/reset`, {
+        method: "POST",
+        body: JSON.stringify({ planId: plan }),
+      });
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao resetar créditos");
 
-      const updatedUsers = users.map(user => 
-        user.id === userId
-          ? { ...user, credits: defaultCredits } 
-          : user
+      const updated = parsed.data.user;
+      setUsers((prev) =>
+        prev.map((user) =>
+          user.id === userId
+            ? { ...user, credits: updated.credits, plan: updated.planType }
+            : user,
+        ),
       );
-
-      setUsers(updatedUsers);
       toast.success("Créditos resetados para o padrão do plano");
     } catch (error) {
       console.error("Error resetting credits:", error);

@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/dialog";
 import { AdminMetricCard } from "../AdminMetricCard";
 import { toast } from "sonner";
+import { readApiResponse, useApiClient } from "@/lib/apiClient";
 
 interface Transaction {
   id: string;
@@ -62,6 +63,7 @@ interface Transaction {
 }
 
 export function TransactionsSection() {
+  const { apiFetch } = useApiClient();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -74,114 +76,68 @@ export function TransactionsSection() {
   const fetchTransactions = async () => {
     setLoading(true);
     try {
-      // SIMULATION: Network delay
-      await new Promise(r => setTimeout(r, 800));
+      const response = await apiFetch("/api/admin/transactions");
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao carregar transações");
 
-      // Mock Transactions Data
-      let mockData: Transaction[] = [
-        {
-          id: "txn_123456789",
-          user_id: "user-1",
-          user_email: "ana.silva@empresa.com",
-          type: "subscription",
-          status: "confirmed",
-          amount: 67.00,
-          currency: "BRL",
-          payment_method: "credit_card",
-          asaas_payment_id: "pay_123456",
-          asaas_customer_id: "cus_123456",
-          description: "Assinatura Pro Mensal",
-          metadata: { plan: "pro" },
-          created_at: "2023-10-25T10:00:00Z",
-          confirmed_at: "2023-10-25T10:00:05Z",
-          refunded_at: null
-        },
-        {
-          id: "txn_987654321",
-          user_id: "user-2",
-          user_email: "carlos.dev@tech.io",
-          type: "subscription",
-          status: "confirmed",
-          amount: 247.00,
-          currency: "BRL",
-          payment_method: "pix",
-          asaas_payment_id: "pay_987654",
-          asaas_customer_id: "cus_987654",
-          description: "Assinatura Anual",
-          metadata: { plan: "annual" },
-          created_at: "2023-10-24T15:30:00Z",
-          confirmed_at: "2023-10-24T15:35:00Z",
-          refunded_at: null
-        },
-        {
-          id: "txn_456789123",
-          user_id: "user-3",
-          user_email: "maria.loja@shop.com",
-          type: "credits",
-          status: "pending",
-          amount: 27.00,
-          currency: "BRL",
-          payment_method: "boleto",
-          asaas_payment_id: "pay_456789",
-          asaas_customer_id: "cus_456789",
-          description: "Pacote de 50 Créditos",
-          metadata: { credits: 50 },
-          created_at: "2023-10-26T09:00:00Z",
-          confirmed_at: null,
-          refunded_at: null
-        },
-        {
-          id: "txn_789123456",
-          user_id: "user-4",
-          user_email: "joao.marketing@agency.com",
-          type: "credits",
-          status: "failed",
-          amount: 54.00,
-          currency: "BRL",
-          payment_method: "credit_card",
-          asaas_payment_id: "pay_789123",
-          asaas_customer_id: "cus_789123",
-          description: "Pacote de 100 Créditos",
-          metadata: { credits: 100 },
-          created_at: "2023-10-23T14:20:00Z",
-          confirmed_at: null,
-          refunded_at: null
-        },
-        {
-          id: "txn_321654987",
-          user_id: "user-5",
-          user_email: "pedro.souza@email.com",
-          type: "subscription",
-          status: "refunded",
-          amount: 67.00,
-          currency: "BRL",
-          payment_method: "credit_card",
-          asaas_payment_id: "pay_321654",
-          asaas_customer_id: "cus_321654",
-          description: "Assinatura Pro Mensal",
-          metadata: { plan: "pro" },
-          created_at: "2023-10-20T11:00:00Z",
-          confirmed_at: "2023-10-20T11:05:00Z",
-          refunded_at: "2023-10-22T10:00:00Z"
-        }
-      ];
+      const normalizeStatus = (rawStatus: any, credited: any) => {
+        const s = String(rawStatus || "").toLowerCase();
+        const isCredited = Boolean(credited);
 
-      // Client-side filtering and sorting simulation
-      if (statusFilter !== "all") {
-        mockData = mockData.filter(t => t.status === statusFilter);
-      }
+        if (s.includes("paid") || s.includes("overpaid") || isCredited) return "confirmed";
+        if (s.includes("pending") || s.includes("waiting") || s.includes("in_progress")) return "pending";
+        if (s.includes("refund") || s.includes("chargeback")) return "refunded";
+        if (s.includes("fail") || s.includes("refused") || s.includes("error")) return "failed";
+        return "pending";
+      };
 
-      if (typeFilter !== "all") {
-        mockData = mockData.filter(t => t.type === typeFilter);
-      }
+      const mapped: Transaction[] = (parsed.data.transactions || []).map((t: any) => {
+        const status = normalizeStatus(t.status, t.credited);
+        const type = status === "refunded" ? "refund" : t.kind === "credits" ? "credits" : "subscription";
 
-      mockData.sort((a, b) => {
+        const description =
+          type === "subscription"
+            ? t.planId
+              ? `Assinatura ${t.planId}`
+              : "Assinatura"
+            : type === "credits"
+              ? t.creditsAmount
+                ? `Pacote de ${t.creditsAmount} Créditos`
+                : "Pacote de créditos"
+              : "Reembolso";
+
+        const payment_method = t.paymentMethod || null;
+
+        return {
+          id: t.id,
+          user_id: t.userId,
+          user_email: t.user?.email ?? null,
+          type,
+          status,
+          amount: Number(t.amount || 0),
+          currency: t.currency || "BRL",
+          payment_method,
+          asaas_payment_id: t.externalId || null,
+          asaas_customer_id: null,
+          description,
+          metadata: t.rawLastStatus || t.rawResponse || null,
+          created_at: t.createdAt,
+          confirmed_at: status === "confirmed" ? (t.creditedAt ? String(t.creditedAt) : t.createdAt) : null,
+          refunded_at: status === "refunded" ? (t.updatedAt ? String(t.updatedAt) : t.createdAt) : null,
+        };
+      });
+
+      let filtered = mapped;
+      if (statusFilter !== "all") filtered = filtered.filter((t) => t.status === statusFilter);
+      if (typeFilter !== "all") filtered = filtered.filter((t) => t.type === typeFilter);
+
+      filtered.sort((a, b) => {
         const dateA = new Date(a.created_at).getTime();
         const dateB = new Date(b.created_at).getTime();
         return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
       });
 
-      setTransactions(mockData);
+      setTransactions(filtered);
     } catch (error) {
       console.error("Error fetching transactions:", error);
       toast.error("Erro ao carregar transações");

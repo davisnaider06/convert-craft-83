@@ -11,6 +11,7 @@ import {
   Zap,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { readApiResponse, useApiClient } from "@/lib/apiClient";
 
 interface OverviewData {
   totalUsers: number;
@@ -26,6 +27,7 @@ interface OverviewData {
 }
 
 export function OverviewSection() {
+  const { apiFetch } = useApiClient();
   const [data, setData] = useState<OverviewData>({
     totalUsers: 0,
     activeSubscribers: 0,
@@ -48,39 +50,11 @@ export function OverviewSection() {
     setIsLoading(true);
 
     try {
-      // SIMULAÇÃO: Delay de rede para parecer real
-      await new Promise(r => setTimeout(r, 1000));
+      const response = await apiFetch("/api/admin/overview");
+      const parsed = await readApiResponse(response);
+      if (!parsed.ok) throw new Error(parsed.error || "Falha ao carregar overview");
 
-      // Dados Estatísticos Mockados
-      const mockStats = {
-        freeUsers: 1240,
-        proSubscribers: 156, // R$ 67/mês
-        annualSubscribers: 42, // R$ 247/ano
-        churnRate: 2.4,
-      };
-
-      const totalUsers = mockStats.freeUsers + mockStats.proSubscribers + mockStats.annualSubscribers;
-      const activeSubscribers = mockStats.proSubscribers + mockStats.annualSubscribers;
-
-      // Calcular MRR (R$67/mês pro + R$247/12 anual)
-      const mrr = (mockStats.proSubscribers * 67) + (mockStats.annualSubscribers * (247 / 12));
-      const arr = mrr * 12;
-
-      // Taxa de conversão
-      const conversionRate = totalUsers > 0 ? (activeSubscribers / totalUsers) * 100 : 0;
-
-      setData({
-        totalUsers,
-        activeSubscribers,
-        freeUsers: mockStats.freeUsers,
-        proSubscribers: mockStats.proSubscribers,
-        annualSubscribers: mockStats.annualSubscribers,
-        mrr,
-        arr,
-        totalRevenue: arr, // Simplificação para demo
-        churnRate: mockStats.churnRate,
-        conversionRate,
-      });
+      setData(parsed.data.overview as OverviewData);
     } catch (error) {
       console.error("Error fetching overview data:", error);
     } finally {

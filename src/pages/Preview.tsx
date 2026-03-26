@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { AnimatedBackground } from "@/components/boder/AnimatedBackground";
 import { ThemeToggle } from "@/components/boder/ThemeToggle";
 import { ConfettiCelebration } from "@/components/boder/ConfettiCelebration";
-import { useAuth } from "@clerk/clerk-react";
+import { useUser } from "@clerk/clerk-react";
 
 import { premiumToast } from "@/components/ui/premium-toast";
 import { SiteRenderer } from "@/components/boder/SiteRenderer"; 
@@ -29,13 +29,10 @@ interface SiteData {
   name: string;
   description: string | null;
   content: any | null; 
-  has_watermark: boolean;
   is_published: boolean;
   subdomain: string | null;
   custom_domain: string | null;
   published_at: string | null;
-  estilo: string | null;
-  nicho: string | null;
 }
 
 type ViewMode = "desktop" | "mobile";
@@ -43,7 +40,7 @@ type ViewMode = "desktop" | "mobile";
 export default function Preview() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { userId } = useAuth();
+  const { user } = useUser();
   const { apiFetch } = useApiClient();
 
   const [site, setSite] = useState<SiteData | null>(null);
@@ -57,11 +54,27 @@ export default function Preview() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [publishResult, setPublishResult] = useState<{ publicUrl: string } | null>(null);
 
-  const isPaid = false; 
+  const [backendPlan, setBackendPlan] = useState<string>("free");
+  const isPaid = backendPlan !== "free";
 
   useEffect(() => {
     if (id) loadSite();
   }, [id]);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const res = await apiFetch(
+          `/api/user/${user.id}?email=${user.primaryEmailAddress?.emailAddress || ""}`,
+        );
+        const payload = await res.json();
+        if (res.ok) setBackendPlan(payload?.plan || "free");
+      } catch {
+        // noop
+      }
+    })();
+  }, [user, apiFetch]);
 
   const loadSite = async () => {
     if (!id) return;
@@ -98,7 +111,8 @@ export default function Preview() {
     navigate("/studio", { 
       state: { 
         loadSiteId: site.id,
-        initialMessage: initialMsg || "Gostaria de fazer alguns ajustes neste site."
+        initialMessage: initialMsg || "Gostaria de fazer alguns ajustes neste site.",
+        showHistory: true,
       } 
     });
   };
@@ -108,15 +122,19 @@ export default function Preview() {
     setPublishing(true);
     
     try {
+      const meta = site.content?.metadata || {};
       const response = await apiFetch(`/api/sites/publish`, {
         method: "POST",
         body: JSON.stringify({
           siteId: site.id,
           subdomain: subdomainInput,
-          userId: userId || undefined,
+          userId: user?.id || undefined,
           content: site.content,
           name: site.name,
-          description: site.description
+          description: site.description,
+          nicho: meta?.nicho,
+          objetivo: meta?.objetivo,
+          estilo: meta?.estilo,
         })
       });
 
@@ -197,7 +215,7 @@ export default function Preview() {
         <motion.div className={`bg-white rounded-xl overflow-hidden shadow-2xl relative ${viewMode === "mobile" ? "w-[375px]" : "w-full max-w-6xl"}`} style={{ height: "calc(100vh - 120px)" }}>
            <div className="w-full h-full overflow-y-auto">
               <SiteRenderer data={site.content} viewMode={viewMode} html={site.html} />
-              {!isPaid && site.has_watermark && (
+              {!isPaid && (
                  <div className="absolute bottom-4 right-4 bg-white/80 px-3 py-1 rounded-full text-xs font-bold backdrop-blur">Criado com Boder AI</div>
               )}
            </div>

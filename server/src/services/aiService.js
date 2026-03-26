@@ -306,4 +306,6 @@ Retorne somente JSON valido com a mesma estrutura do briefing.
 
 module.exports = {
   gerarSite,
+  // Internal helper reused by the fullstack engine (JSON-only).
+  __generateJsonWithFallback: generateJsonWithFallback,
 };
